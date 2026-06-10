@@ -1,0 +1,121 @@
+.login-page {
+  min-height: 100vh;
+  background: #0d1117;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 620rpx;
+  background: #161b22;
+  border: 0.5px solid #30363d;
+  border-radius: 16rpx;
+  padding: 56rpx 38rpx 46rpx;
+  box-sizing: border-box;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 46rpx;
+}
+
+.brand-label {
+  display: block;
+  font-size: 18rpx;
+  color: #4a9eff;
+  letter-spacing: 2px;
+  margin-bottom: 14rpx;
+  text-transform: uppercase;
+}
+
+.login-title {
+  display: block;
+  font-size: 50rpx;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 10rpx;
+}
+
+.login-subtitle {
+  display: block;
+  font-size: 22rpx;
+  color: #7d8590;
+  letter-spacing: 0.5px;
+}
+
+.login-form {
+  .form-item {
+    margin-bottom: 26rpx;
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 10rpx;
+    color: #7d8590;
+    font-size: 22rpx;
+  }
+
+  .form-input {
+    width: 100%;
+    height: 92rpx;
+    background: #0d1117;
+    border: 0.5px solid #30363d;
+    border-radius: 16rpx;
+    padding: 0 24rpx;
+    font-size: 28rpx;
+    color: #e6edf3;
+    box-sizing: border-box;
+  }
+
+  .input-placeholder {
+    color: #484f58;
+  }
+
+  .error-message {
+    margin-bottom: 22rpx;
+    padding: 14rpx 18rpx;
+    background: #f8514922;
+    border: 0.5px solid #f85149;
+    border-radius: 8rpx;
+
+    text {
+      font-size: 23rpx;
+      color: #f85149;
+    }
+  }
+
+  .login-button {
+    width: 100%;
+    height: 92rpx;
+    border: none;
+    border-radius: 16rpx;
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #ffffff;
+    margin-top: 10rpx;
+    background: #1a6eff;
+    letter-spacing: 0.5px;
+
+    &[disabled] {
+      opacity: 0.52;
+    }
+
+    &::after {
+      border: none;
+    }
+  }
+}
+
+.login-footer {
+  margin-top: 34rpx;
+  text-align: center;
+
+  .footer-text {
+    font-size: 21rpx;
+    color: #484f58;
+  }
+}

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.log
+
+# IDE
+.vscode/
+.idea/
+.claude/
+.swc/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Taro
+.temp/
+.cache/
+
+# Environment
+.env
+.env.local
+
+# Archives / binaries
+*.zip
+*.7z
+*.rar
+*.jar
+*.class
+
+# Crash dumps
+hs_err_pid*
+replay_pid*
+
+

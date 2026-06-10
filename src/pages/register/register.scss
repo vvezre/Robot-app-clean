@@ -1,0 +1,123 @@
+.register-page {
+    min-height: 100vh;
+    background: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40rpx;
+    box-sizing: border-box;
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.register-container {
+    width: 100%;
+    max-width: 620rpx;
+    background: #161b22;
+    border: 0.5px solid #30363d;
+    border-radius: 16rpx;
+    padding: 58rpx 38rpx 46rpx;
+    box-sizing: border-box;
+}
+
+.frame-glow {
+    display: none;
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 46rpx;
+}
+
+.mode-badge {
+    display: none;
+}
+
+.register-title {
+    display: block;
+    font-size: 50rpx;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 10rpx;
+    letter-spacing: 0.5px;
+}
+
+.register-subtitle {
+    display: block;
+    font-size: 22rpx;
+    color: #7d8590;
+    letter-spacing: 0.5px;
+}
+
+.register-form {
+    .form-item {
+        margin-bottom: 26rpx;
+    }
+
+    .field-label {
+        display: block;
+        margin-bottom: 10rpx;
+        color: #7d8590;
+        font-size: 22rpx;
+        letter-spacing: 0.3px;
+    }
+
+    .form-input {
+        width: 100%;
+        height: 92rpx;
+        background: #0d1117;
+        border: 0.5px solid #30363d;
+        border-radius: 16rpx;
+        padding: 0 24rpx;
+        font-size: 28rpx;
+        color: #e6edf3;
+        box-sizing: border-box;
+    }
+
+    .input-placeholder {
+        color: #484f58;
+    }
+
+    .error-message {
+        margin-bottom: 22rpx;
+        padding: 14rpx 18rpx;
+        background: #f8514922;
+        border: 0.5px solid #f85149;
+        border-radius: 8rpx;
+
+        text {
+            font-size: 23rpx;
+            color: #f85149;
+        }
+    }
+
+    .register-button {
+        width: 100%;
+        height: 92rpx;
+        border: none;
+        border-radius: 16rpx;
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #ffffff;
+        margin-top: 10rpx;
+        background: #1a6eff;
+
+        &[disabled] {
+            opacity: 0.52;
+        }
+
+        &::after {
+            border: none;
+        }
+    }
+}
+
+.register-footer {
+    margin-top: 34rpx;
+    text-align: center;
+
+    .footer-text {
+        font-size: 24rpx;
+        color: #4a9eff;
+        letter-spacing: 0.3px;
+    }
+}

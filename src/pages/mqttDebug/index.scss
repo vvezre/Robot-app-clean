@@ -1,0 +1,245 @@
+.mqtt-debug {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  .header {
+    margin: 20rpx 20rpx 10rpx;
+    padding: 22rpx 24rpx;
+    background: #161b22;
+    border: 0.5px solid #30363d;
+    border-radius: 8rpx;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .status {
+      font-weight: 600;
+      font-size: 24rpx;
+
+      &.connected {
+        color: #3fb950;
+      }
+
+      &.disconnected {
+        color: #7d8590;
+      }
+
+      &.connecting {
+        color: #e3b341;
+      }
+
+      &.error {
+        color: #f85149;
+      }
+    }
+
+    .actions {
+      display: flex;
+      gap: 10rpx;
+    }
+  }
+
+  .mini-metrics {
+    margin: 0 20rpx 12rpx;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10rpx;
+
+    .metric-card {
+      padding: 14rpx;
+      border-radius: 8rpx;
+      border: 0.5px solid #30363d;
+      background: #161b22;
+      display: flex;
+      flex-direction: column;
+      gap: 4rpx;
+    }
+
+    .metric-label {
+      font-size: 18rpx;
+      color: #7d8590;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 24rpx;
+      color: #e6edf3;
+      font-weight: 600;
+    }
+  }
+
+  .content {
+    flex: 1;
+    padding: 0 20rpx 18rpx;
+    overflow-y: auto;
+  }
+
+  .section {
+    background: #161b22;
+    border: 0.5px solid #30363d;
+    padding: 20rpx;
+    margin-bottom: 14rpx;
+    border-radius: 8rpx;
+
+    .section-title {
+      font-size: 25rpx;
+      font-weight: 600;
+      margin-bottom: 14rpx;
+      display: block;
+      color: #7d8590;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10rpx;
+      margin-bottom: 10rpx;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 180rpx;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 21rpx;
+      color: #7d8590;
+      margin-bottom: 6rpx;
+      letter-spacing: 0.3px;
+    }
+
+    .form-hint {
+      display: block;
+      font-size: 18rpx;
+      color: #484f58;
+      margin-top: 6rpx;
+    }
+
+    .input {
+      border: 0.5px solid #30363d;
+      padding: 12rpx 14rpx;
+      border-radius: 8rpx;
+      width: 100%;
+      font-size: 24rpx;
+      color: #e6edf3;
+      background: #0d1117;
+      box-sizing: border-box;
+    }
+
+    .picker-view {
+      border: 0.5px solid #30363d;
+      padding: 12rpx 14rpx;
+      border-radius: 8rpx;
+      font-size: 24rpx;
+      color: #e6edf3;
+      background: #0d1117;
+    }
+
+    .row {
+      display: flex;
+      gap: 10rpx;
+      align-items: center;
+      margin-top: 10rpx;
+    }
+
+    .send-btn {
+      width: 100%;
+      margin-top: 12rpx;
+    }
+  }
+
+  .logs-section {
+    .logs-box {
+      height: 420px;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 12rpx;
+      border-radius: 8rpx;
+      border: 0.5px solid #30363d;
+      font-family: 'Consolas', 'Lucida Console', monospace;
+      font-size: 19rpx;
+      overflow-y: auto;
+
+      .log-empty {
+        color: #484f58;
+        text-align: center;
+        padding: 30rpx;
+        display: block;
+      }
+
+      .log-item {
+        margin-bottom: 10rpx;
+        padding: 8rpx 10rpx;
+        border-radius: 4rpx;
+        word-break: break-all;
+        line-height: 1.55;
+        border: 0.5px solid transparent;
+
+        &.log-send {
+          background-color: #1a6eff22;
+          border-color: #30363d;
+        }
+
+        &.log-receive {
+          background-color: #3fb95015;
+          border-color: #30363d;
+        }
+
+        &.log-info {
+          background-color: #e3b34115;
+          border-color: #30363d;
+        }
+
+        &.log-error {
+          background-color: #f8514922;
+          border-color: #30363d;
+        }
+
+        .log-time {
+          color: #484f58;
+          font-size: 17rpx;
+          margin-right: 8rpx;
+        }
+
+        .log-topic {
+          color: #4a9eff;
+          font-weight: 600;
+          margin-right: 8rpx;
+        }
+
+        .log-message {
+          color: #e6edf3;
+          display: block;
+          margin-top: 4rpx;
+        }
+
+        .log-hex {
+          margin-top: 8rpx;
+          padding-top: 8rpx;
+          border-top: 0.5px solid #21262d;
+
+          .log-hex-label {
+            color: #7d8590;
+            font-size: 17rpx;
+            margin-right: 6rpx;
+          }
+
+          .log-hex-content {
+            color: #e3b341;
+            font-size: 17rpx;
+            word-break: break-all;
+            display: block;
+            margin-top: 4rpx;
+          }
+        }
+      }
+    }
+  }
+}

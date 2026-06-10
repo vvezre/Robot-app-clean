@@ -1,0 +1,54 @@
+.path-canvas-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.82));
+  border: 1px solid rgba(100, 116, 139, 0.32);
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 12rpx 28rpx rgba(2, 6, 23, 0.32);
+}
+
+.path-canvas {
+  width: 100%;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #07111f;
+}
+
+.path-legend {
+  margin-top: 18rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18rpx 24rpx;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.legend-dot {
+  width: 18rpx;
+  height: 18rpx;
+  border-radius: 50%;
+
+  &.cleaning {
+    background: #22d3ee;
+  }
+
+  &.turn {
+    background: #94a3b8;
+  }
+
+  &.current {
+    background: #f97316;
+  }
+
+  &.vehicle {
+    background: #ef4444;
+  }
+}
+
+.legend-text {
+  font-size: 22rpx;
+  color: rgba(226, 232, 240, 0.78);
+}
