@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 
+        Android 9 (API 28) 及以上版本默认禁止明文 HTTP/WebSocket 流量
+        此配置允许特定域名的明文流量，用于 MQTT WebSocket 连接
+    -->
+    
+    <!-- 允许特定域名的明文流量 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- MQTT 服务器地址 -->
+        <domain includeSubdomains="true">218.2.130.246</domain>
+    </domain-config>
+    
+    <!-- 
+        如果需要允许所有域名的明文流量（不推荐，仅用于开发测试）
+        可以取消下面的注释，但生产环境应该使用加密连接 (wss://)
+    -->
+    <!--
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    -->
+</network-security-config>
+

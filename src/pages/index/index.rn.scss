@@ -1,0 +1,553 @@
+// React Native 专用简化样式
+// 颜色变量
+$slate-900: #0f172a;
+$slate-800: #1e293b;
+$slate-700: #334155;
+$slate-600: #475569;
+$slate-500: #64748b;
+$slate-400: #94a3b8;
+$slate-300: #cbd5e1;
+
+$cyan-500: #06b6d4;
+$cyan-400: #22d3ee;
+$blue-500: #3b82f6;
+$green-bright: #00E096;
+$green-500: #10b981;
+$yellow-500: #eab308;
+$red-500: #ef4444;
+
+$text-primary: #ffffff;
+$text-secondary: $slate-300;
+$text-label: #B0B0B0;
+
+.container {
+  width: 100%;
+  min-height: 100%;
+  background-color: $slate-900;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  background-color: $slate-900;
+  padding: 20px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.home-page {
+  flex: 1;
+  background-color: $slate-900;
+}
+
+.home-header {
+  background-color: $slate-800;
+  padding: 48px 32px 32px;
+  border-radius: 0 0 48px 48px;
+  margin-bottom: 24px;
+}
+
+.home-content {
+  padding: 0 32px 32px;
+}
+
+.robot-card {
+  background-color: $slate-800;
+  border-width: 1px;
+  border-color: $slate-700;
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+
+.info-card {
+  background-color: $slate-800;
+  border-width: 1px;
+  border-color: $slate-700;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.detail-page {
+  flex: 1;
+  background-color: $slate-900;
+}
+
+.settings-page {
+  flex: 1;
+  background-color: $slate-900;
+}
+
+.bottom-nav {
+  background-color: $slate-800;
+  border-top-width: 1px;
+  border-top-color: $slate-700;
+  display: flex;
+  height: 120px;
+}
+
+.nav-item {
+  flex: 1;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// ========== WebSocket 连接进度条 ==========
+.ws-sync-bar {
+  margin-top: 12px;
+  background-color: rgba(30, 41, 59, 0.9);
+  border-width: 1px;
+  border-color: $slate-700;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.ws-sync-bar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.ws-sync-text {
+  color: $text-label;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ws-sync-percent {
+  color: $cyan-400;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ws-sync-percent-done {
+  color: $green-bright;
+}
+
+.ws-sync-progress {
+  height: 4px;
+  background-color: $slate-700;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ws-sync-progress-fill {
+  height: 100%;
+  background-color: $cyan-500;
+  border-radius: 2px;
+}
+
+.ws-sync-progress-fill-done {
+  background-color: $green-500;
+}
+
+// ========== 重连提示和按钮样式（RN简化版）==========
+.ws-reconnect-hint {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top-width: 1px;
+  border-top-color: $slate-700;
+}
+
+.ws-reconnect-text {
+  color: $cyan-400;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.ws-reconnect-btn {
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #e0f2fe, #bfdbfe);
+  border-width: 1px;
+  border-color: rgba(125, 211, 252, 0.56);
+  border-radius: 4px;
+}
+
+.ws-reconnect-btn-text {
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+// 断开连接状态栏（进度条隐藏后显示）
+.ws-disconnected-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: rgba(226, 232, 240, 0.16);
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.34);
+  border-radius: 6px;
+}
+
+.ws-disconnected-dot {
+  width: 5px;
+  height: 5px;
+  background-color: #7dd3fc;
+  border-radius: 2.5px;
+  margin-right: 6px;
+}
+
+.ws-disconnected-text {
+  color: #0c4a6e;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ========== 定时页极简重构（RN） ========== */
+.settings-section.plan-section {
+  background-color: transparent;
+  border-width: 0;
+  padding-top: 4px;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.settings-section.plan-section > .section-title {
+  display: none;
+}
+
+.plan-hero {
+  margin-bottom: 8px;
+}
+
+.plan-hero-stats {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+}
+
+.plan-stat {
+  flex: 1;
+  min-width: 0;
+  border-radius: 10px;
+  background-color: rgba(15, 23, 42, 0.72);
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.2);
+  padding: 10px 12px;
+}
+
+.plan-stat-label {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.plan-stat-value {
+  margin-top: 4px;
+  font-size: 24px;
+  line-height: 26px;
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.plan-stat-value-time {
+  font-size: 26px;
+}
+
+.plan-list-shell {
+  position: relative;
+  min-height: 220px;
+  padding-bottom: 76px;
+}
+
+.plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-plans {
+  min-height: 180px;
+  border-radius: 10px;
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.16);
+  background-color: rgba(15, 23, 42, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-plans-title {
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.plan-card {
+  border-radius: 10px;
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.22);
+  background-color: rgba(15, 23, 42, 0.7);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.plan-card-top {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.plan-time {
+  color: #f8fafc;
+  font-size: 28px;
+  line-height: 30px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
+}
+
+.plan-time-label {
+  margin-top: 3px;
+  color: rgba(148, 163, 184, 0.9);
+  font-size: 11px;
+}
+
+.plan-kind-tag {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.32);
+  color: #e2e8f0;
+  background-color: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.plan-kind-tag-once {
+  color: #fda4af;
+  border-color: rgba(251, 113, 133, 0.44);
+  background-color: rgba(127, 29, 29, 0.28);
+}
+
+.plan-kind-tag-repeat {
+  color: #67e8f9;
+  border-color: rgba(34, 211, 238, 0.44);
+  background-color: rgba(8, 47, 73, 0.32);
+}
+
+.plan-freq,
+.plan-action {
+  color: rgba(203, 213, 225, 0.95);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.plan-card-bottom {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+.plan-delete-btn {
+  min-width: 64px;
+  height: 32px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: rgba(251, 113, 133, 0.48);
+  background-color: rgba(127, 29, 29, 0.28);
+  color: #fecdd3;
+  font-size: 12px;
+}
+
+.plan-fab-btn {
+  position: absolute;
+  right: 2px;
+  bottom: 8px;
+  width: 46px;
+  height: 46px;
+  border-radius: 23px;
+  border-width: 1px;
+  border-color: rgba(34, 211, 238, 0.5);
+  background-color: rgba(8, 47, 73, 0.62);
+  color: #67e8f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.plan-fab-icon {
+  font-size: 28px;
+  line-height: 30px;
+  color: #67e8f9;
+}
+
+.plan-modal-overlay {
+  background-color: rgba(2, 6, 23, 0.78);
+}
+
+.plan-modal-content {
+  width: 92%;
+  max-width: 420px;
+  max-height: 680px;
+  border-radius: 12px;
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.24);
+  background-color: rgba(15, 23, 42, 0.96);
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-modal-header {
+  padding: 12px 14px;
+  border-bottom-width: 1px;
+  border-bottom-color: rgba(148, 163, 184, 0.2);
+  background-color: transparent;
+}
+
+.plan-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.plan-form-scroll {
+  flex: 1;
+  min-height: 180px;
+  max-height: 520px;
+  padding: 12px 14px 4px;
+}
+
+.plan-form-scroll .form-group {
+  margin-bottom: 10px;
+}
+
+.plan-form-scroll .form-label {
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.plan-form-scroll .form-row {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+}
+
+.plan-form-scroll .form-group-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-form-scroll .form-input {
+  min-height: 38px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.24);
+  background-color: rgba(15, 23, 42, 0.58);
+  color: #e2e8f0;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.plan-input-highlight {
+  border-color: rgba(34, 211, 238, 0.52);
+  color: #ecfeff;
+}
+
+.plan-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.plan-tab {
+  flex: 1;
+  height: 34px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.24);
+  background-color: rgba(15, 23, 42, 0.56);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.plan-tab.active {
+  border-color: rgba(34, 211, 238, 0.58);
+  color: #ecfeff;
+  background-color: rgba(34, 211, 238, 0.12);
+}
+
+.week-days-selector {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.day-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.26);
+  background-color: rgba(15, 23, 42, 0.56);
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.day-btn.selected {
+  border-color: rgba(34, 211, 238, 0.58);
+  background-color: rgba(34, 211, 238, 0.14);
+  color: #ecfeff;
+}
+
+.plan-modal-footer {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  padding: 10px 14px 14px;
+  border-top-width: 1px;
+  border-top-color: rgba(148, 163, 184, 0.2);
+  background-color: transparent;
+}
+
+.plan-cancel-btn,
+.plan-confirm-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: 8px;
+  padding: 0 6px;
+  font-size: 13px;
+}
+
+.plan-cancel-btn {
+  border-width: 1px;
+  border-color: rgba(148, 163, 184, 0.26);
+  background-color: rgba(15, 23, 42, 0.5);
+  color: #cbd5e1;
+}
+
+.plan-confirm-btn {
+  border-width: 1px;
+  border-color: rgba(34, 211, 238, 0.6);
+  background-color: rgba(34, 211, 238, 0.16);
+  color: #ecfeff;
+}

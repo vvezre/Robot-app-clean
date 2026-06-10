@@ -1,0 +1,665 @@
+.robot-model {
+  position: relative;
+  width: 188rpx;
+  height: 128rpx;
+  flex: 0 0 auto;
+  margin: -6rpx 0 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.robot-model--status {
+  width: 224rpx;
+  height: 152rpx;
+  margin: -10rpx 0 10rpx;
+}
+
+/* 统一底部柔和投影 */
+.robot-model::after {
+  content: '';
+  position: absolute;
+  left: 22rpx;
+  right: 14rpx;
+  bottom: 2rpx;
+  height: 22rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.14) 46%, rgba(0, 0, 0, 0) 72%);
+  z-index: 0;
+}
+
+.robot-model--unknown {
+  opacity: 0.56;
+  filter: grayscale(100%);
+}
+
+/* ============================================================
+   D型（干挂式单边滑动+横跨滚刷）3D全新高保真样式
+   ============================================================ */
+.d-robot-model {
+  position: relative;
+  z-index: 1;
+  width: 178rpx;
+  height: 116rpx;
+  transform: rotate(-4deg) skewX(-8deg);
+  transform-origin: 50% 58%;
+  filter: drop-shadow(0 9rpx 10rpx rgba(0, 0, 0, 0.35));
+}
+
+.robot-model--status .d-robot-model {
+  width: 214rpx;
+  height: 138rpx;
+}
+
+/* 整合的光伏电池板，供机器滑行扫地 */
+.d-solar-panel {
+  position: absolute;
+  left: 4rpx;
+  top: 14rpx;
+  width: 136rpx;
+  height: 86rpx;
+  padding: 4rpx;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2rpx;
+  border-radius: 4rpx;
+  border: 3rpx solid #a6b5c5;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 35%),
+    linear-gradient(145deg, #181d2c 0%, #0e121d 50%, #231e2d 100%);
+  box-shadow:
+    inset 0 2rpx 3rpx rgba(255, 255, 255, 0.15),
+    0 4rpx 8rpx rgba(0, 0, 0, 0.22);
+  z-index: 2;
+}
+
+.robot-model--status .d-solar-panel {
+  left: 6rpx;
+  top: 16rpx;
+  width: 164rpx;
+  height: 104rpx;
+}
+
+.d-solar-cell {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 1rpx;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 38%),
+    linear-gradient(180deg, #212437 0%, #0e111a 100%);
+  box-shadow:
+    inset 0 0 0 1rpx rgba(185, 205, 230, 0.22),
+    inset 0 -1rpx 2rpx rgba(0, 0, 0, 0.28);
+}
+
+/* 右侧边缘的干挂式运行滑轨 (Side Rail) */
+.d-side-rail {
+  position: absolute;
+  right: 10rpx;
+  top: 10rpx;
+  width: 22rpx;
+  height: 94rpx;
+  background: linear-gradient(90deg, #ccd5df 0%, #8995a5 100%);
+  border-radius: 3rpx;
+  box-shadow:
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.6),
+    0 2rpx 4rpx rgba(0, 0, 0, 0.2);
+  z-index: 3;
+}
+
+.robot-model--status .d-side-rail {
+  right: 12rpx;
+  top: 12rpx;
+  width: 26rpx;
+  height: 112rpx;
+}
+
+.d-rail-metallic {
+  position: absolute;
+  left: 8rpx;
+  width: 6rpx;
+  top: 0;
+  bottom: 0;
+  background: #f7f9fa;
+  box-shadow: inset -1rpx 0 2rpx rgba(0, 0, 0, 0.4);
+}
+
+.robot-model--status .d-rail-metallic {
+  left: 10rpx;
+  width: 7rpx;
+}
+
+/* 横向横跨光伏板的大清洁滚刷组件 (Horizontal Brush spanning across) */
+.d-horizontal-brush {
+  position: absolute;
+  left: 10rpx;
+  right: 28rpx;
+  top: 36rpx; /* 在光伏板中部，偏上 */
+  height: 20rpx;
+  z-index: 5;
+}
+
+.robot-model--status .d-horizontal-brush {
+  left: 12rpx;
+  right: 34rpx;
+  top: 44rpx;
+  height: 24rpx;
+}
+
+/* 滚刷金属加强撑杆 */
+.d-brush-arm-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 4rpx;
+  background: linear-gradient(180deg, #f7f9fb 0%, #909bb0 100%);
+  border-radius: 1rpx;
+  z-index: 2;
+}
+
+/* 圆柱黑色清洁刷体 */
+.d-brush-roller {
+  position: absolute;
+  left: 4rpx;
+  right: 4rpx;
+  top: 2rpx;
+  bottom: 0;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, #15181f 0%, #3e4956 42%, #0b0d10 100%);
+  box-shadow:
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.12),
+    0 3rpx 5rpx rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* 清洁刷毛斜向纹理 */
+.d-brush-bristles {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0rpx, transparent 4rpx,
+    rgba(255, 255, 255, 0.08) 4rpx, rgba(255, 255, 255, 0.08) 6rpx,
+    rgba(0, 0, 0, 0.3) 6rpx, rgba(0, 0, 0, 0.3) 8rpx
+  );
+  opacity: 0.88;
+}
+
+/* 左端落地支撑轮 (Support Wheel at the end) */
+.d-brush-end-wheel {
+  position: absolute;
+  left: -2rpx;
+  top: 2rpx;
+  width: 8rpx;
+  height: 16rpx;
+  border-radius: 3rpx;
+  background: radial-gradient(circle at 30% 30%, #687282 0%, #171b21 100%);
+  border: 1rpx solid #3c4450;
+  box-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.4);
+  z-index: 3;
+}
+
+.robot-model--status .d-brush-end-wheel {
+  width: 10rpx;
+  height: 20rpx;
+}
+
+/* 滑动于右侧导轨之上的机载箱体 (Compact Sliding Drive Body) */
+.d-body-block {
+  position: absolute;
+  right: 4rpx;
+  top: 22rpx; /* 正好与横向扫刷中轴对齐连接 */
+  width: 32rpx;
+  height: 48rpx;
+  background: linear-gradient(135deg, #f8fafc 0%, #cbd4e0 55%, #8898aa 100%);
+  border-radius: 4rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.6),
+    0 3rpx 6rpx rgba(0, 0, 0, 0.28);
+  z-index: 6;
+}
+
+.robot-model--status .d-body-block {
+  right: 5rpx;
+  top: 26rpx;
+  width: 38rpx;
+  height: 58rpx;
+}
+
+.d-body-face {
+  position: absolute;
+  left: 3rpx;
+  right: 3rpx;
+  top: 3rpx;
+  bottom: 3rpx;
+  border-radius: 2rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
+}
+
+/* 主机上方的深色控制箱盖 */
+.d-body-lid {
+  position: absolute;
+  left: 6rpx;
+  right: 6rpx;
+  top: 6rpx;
+  height: 18rpx;
+  border-radius: 2rpx;
+  background: linear-gradient(135deg, #323b4a 0%, #161c26 100%);
+  border: 1rpx solid #3f4a5c;
+  box-shadow: inset 0 1rpx 2rpx rgba(255, 255, 255, 0.08);
+}
+
+.robot-model--status .d-body-lid {
+  height: 22rpx;
+}
+
+/* 发光的LED指示灯 */
+.d-body-led {
+  position: absolute;
+  right: 6rpx;
+  bottom: 6rpx;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: #24e574;
+  box-shadow:
+    0 0 6rpx #24e574,
+    0 0 10rpx rgba(36, 229, 116, 0.8);
+}
+
+
+/* ============================================================
+   T型（履带双辊清洁）3D优化样式
+   调整：光伏板更大，车身比例缩小，前后大滚刷直径增大增粗
+   ============================================================ */
+.t-robot-model {
+  position: relative;
+  z-index: 1;
+  width: 178rpx;
+  height: 116rpx;
+  transform: rotate(-4deg) skewX(-8deg);
+  transform-origin: 50% 58%;
+  filter: drop-shadow(0 9rpx 12rpx rgba(0, 0, 0, 0.38));
+}
+
+.robot-model--status .t-robot-model {
+  width: 214rpx;
+  height: 138rpx;
+}
+
+/* 优化：更大面积的光伏电池板背景 */
+.t-solar-panel {
+  position: absolute;
+  left: 0rpx;
+  top: 6rpx;
+  width: 178rpx;
+  height: 104rpx;
+  padding: 4rpx;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 2rpx;
+  border-radius: 4rpx;
+  border: 3rpx solid #a2b0c1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 40%),
+    linear-gradient(145deg, #151a28 0%, #0c101a 50%, #201b2a 100%);
+  box-shadow:
+    inset 0 2rpx 3rpx rgba(255, 255, 255, 0.15),
+    0 4rpx 10rpx rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+
+.robot-model--status .t-solar-panel {
+  left: 0rpx;
+  top: 8rpx;
+  width: 214rpx;
+  height: 124rpx;
+}
+
+.t-solar-cell {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 1rpx;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 38%),
+    linear-gradient(180deg, #212437 0%, #0e111a 100%);
+  box-shadow:
+    inset 0 0 0 1rpx rgba(185, 205, 230, 0.22),
+    inset 0 -1rpx 2rpx rgba(0, 0, 0, 0.28);
+}
+
+.t-robot-shadow {
+  position: absolute;
+  left: 20rpx;
+  bottom: 4rpx;
+  width: 138rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(2rpx);
+  z-index: 2;
+}
+
+/* 履带宽度和比例微调 */
+.t-track {
+  position: absolute;
+  width: 16rpx;
+  height: 80rpx;
+  border-radius: 4rpx;
+  background: #121417;
+  z-index: 4;
+  box-shadow: 0 4rpx 6rpx rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.t-track--left {
+  left: 24rpx;
+  top: 18rpx;
+}
+
+.t-track--right {
+  left: 138rpx;
+  top: 18rpx;
+}
+
+.robot-model--status .t-track {
+  width: 20rpx;
+  height: 96rpx;
+}
+
+.robot-model--status .t-track--left {
+  left: 28rpx;
+  top: 22rpx;
+}
+
+.robot-model--status .t-track--right {
+  left: 166rpx;
+  top: 22rpx;
+}
+
+.t-track-belt {
+  position: absolute;
+  left: 2rpx;
+  right: 2rpx;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    #181a1f 0rpx, #181a1f 3rpx,
+    #0a0b0d 3rpx, #0a0b0d 6rpx
+  );
+  border-radius: 2rpx;
+}
+
+.t-track-wheel {
+  position: absolute;
+  left: 2rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, #727a85 0%, #26292e 100%);
+  border: 1rpx solid #3d424a;
+  z-index: 5;
+}
+
+.t-track-wheel--1 { top: 6rpx; }
+.t-track-wheel--2 { top: 34rpx; }
+.t-track-wheel--3 { bottom: 6rpx; }
+
+.robot-model--status .t-track-wheel {
+  left: 3rpx;
+  width: 12rpx;
+  height: 12rpx;
+}
+.robot-model--status .t-track-wheel--2 { top: 42rpx; }
+
+.t-track-plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14rpx;
+  bottom: 14rpx;
+  background: linear-gradient(90deg, #d2dae4 0%, #909bb0 100%);
+  border-left: 1rpx solid rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 1rpx 2rpx rgba(255,255,255,0.4);
+  z-index: 6;
+  opacity: 0.92;
+}
+
+/* 优化：中央机体体积缩小 (Compact Cabinet) */
+.t-chassis {
+  position: absolute;
+  left: 48rpx;
+  top: 24rpx;
+  width: 82rpx;  /* 宽度从96收小到82 */
+  height: 64rpx; /* 高度从72收小到64 */
+  background: linear-gradient(135deg, #f5f8fc 0%, #cbd4e0 55%, #8898aa 100%);
+  border-radius: 5rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.6),
+    0 4rpx 8rpx rgba(0, 0, 0, 0.28);
+  z-index: 5;
+}
+
+.robot-model--status .t-chassis {
+  left: 58rpx;
+  top: 29rpx;
+  width: 98rpx;
+  height: 76rpx;
+}
+
+.t-chassis-top {
+  position: absolute;
+  left: 4rpx;
+  right: 4rpx;
+  top: 4rpx;
+  height: 42rpx;
+  background: linear-gradient(180deg, #e4eaf2 0%, #aab7c6 100%);
+  border-radius: 3rpx;
+  box-shadow: inset 0 -2rpx 3rpx rgba(0,0,0,0.15);
+}
+
+.robot-model--status .t-chassis-top {
+  height: 50rpx;
+}
+
+.t-chassis-lid {
+  position: absolute;
+  left: 8rpx;
+  top: 6rpx;
+  width: 48rpx; /* 收窄 */
+  height: 28rpx;
+  border-radius: 2rpx;
+  background: linear-gradient(135deg, #2f3643 0%, #151a24 100%);
+  border: 1rpx solid #3e4757;
+  box-shadow:
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.1),
+    0 2rpx 4rpx rgba(0, 0, 0, 0.4);
+}
+
+.robot-model--status .t-chassis-lid {
+  left: 10rpx;
+  top: 8rpx;
+  width: 58rpx;
+  height: 34rpx;
+}
+
+.t-lid-accent {
+  position: absolute;
+  left: 3rpx;
+  top: 3rpx;
+  right: 3rpx;
+  bottom: 3rpx;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.t-chassis-handle {
+  position: absolute;
+  left: 14rpx;
+  bottom: 2rpx;
+  width: 36rpx;
+  height: 3rpx;
+  border-radius: 2rpx;
+  background: linear-gradient(90deg, #e1e7f0 0%, #828c9b 100%);
+}
+
+.t-chassis-sensor {
+  position: absolute;
+  border-radius: 2rpx;
+}
+
+.t-chassis-sensor--black-1 {
+  left: 60rpx;
+  top: 6rpx;
+  width: 4rpx;
+  height: 10rpx;
+  background: linear-gradient(180deg, #424954 0%, #171a21 100%);
+}
+
+.t-chassis-sensor--gold {
+  left: 66rpx;
+  top: 5rpx;
+  width: 5rpx;
+  height: 14rpx;
+  background: linear-gradient(180deg, #ffe185 0%, #b8860b 60%, #5c4305 100%);
+  border-radius: 2rpx;
+  box-shadow: 0 0 3rpx rgba(218, 165, 32, 0.4);
+}
+
+.t-chassis-sensor--black-2 {
+  left: 73rpx;
+  top: 10rpx;
+  width: 4rpx;
+  height: 8rpx;
+  background: linear-gradient(180deg, #424954 0%, #171a21 100%);
+}
+
+.robot-model--status .t-chassis-sensor--black-1 { left: 74rpx; top: 8rpx; width: 5rpx; height: 12rpx; }
+.robot-model--status .t-chassis-sensor--gold { left: 81rpx; top: 6rpx; width: 7rpx; height: 18rpx; }
+.robot-model--status .t-chassis-sensor--black-2 { left: 90rpx; top: 12rpx; width: 5rpx; height: 10rpx; }
+
+.t-chassis-status-led {
+  position: absolute;
+  right: 10rpx;
+  bottom: 6rpx;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: #24e574;
+  box-shadow:
+    0 0 6rpx #24e574,
+    0 0 10rpx rgba(36, 229, 116, 0.8);
+  animation: t-led-pulse 2s infinite ease-in-out;
+}
+
+/* ============================================================
+   前后大滚刷组件 (优化：滚刷明显增大增粗，长度延展)
+   ============================================================ */
+.t-brush {
+  position: absolute;
+  height: 24rpx; /* 直径由18rpx增大到24rpx */
+  z-index: 6;
+}
+
+.robot-model--status .t-brush {
+  height: 28rpx; /* 直径由22rpx增大到28rpx */
+}
+
+.t-brush--rear {
+  left: 10rpx;  /* 长度往两端各延展4rpx，范围更宽 */
+  top: 2rpx;
+  width: 158rpx; /* 宽度由144rpx增加到158rpx */
+  z-index: 3;
+}
+
+.t-brush--front {
+  left: 10rpx;
+  bottom: 2rpx;
+  width: 158rpx;
+  z-index: 7;
+}
+
+.robot-model--status .t-brush--rear {
+  left: 12rpx;
+  top: 2rpx;
+  width: 190rpx;
+}
+
+.robot-model--status .t-brush--front {
+  left: 12rpx;
+  bottom: 2rpx;
+  width: 190rpx;
+}
+
+.t-brush-arm {
+  position: absolute;
+  width: 18rpx;
+  height: 14rpx;
+  background: linear-gradient(135deg, #eceff4 0%, #9fa8b8 100%);
+  border-radius: 2rpx;
+}
+
+.t-brush-arm--left { left: 16rpx; }
+.t-brush-arm--right { right: 16rpx; }
+
+.t-brush--rear .t-brush-arm {
+  bottom: -4rpx;
+  transform: rotate(12deg);
+}
+
+.t-brush--front .t-brush-arm {
+  top: -4rpx;
+  transform: rotate(-12deg);
+}
+
+/* 大粗圆柱形刷体 */
+.t-brush-roller {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, #12151b 0%, #3e4956 42%, #050608 100%);
+  box-shadow:
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.15),
+    0 4rpx 8rpx rgba(0, 0, 0, 0.45); /* 更厚的阴影强化大直径感 */
+  overflow: hidden;
+  z-index: 1;
+}
+
+.t-brush-bristles {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0rpx, transparent 3rpx,
+    rgba(255, 255, 255, 0.1) 3rpx, rgba(255, 255, 255, 0.1) 5rpx,
+    rgba(0, 0, 0, 0.4) 5rpx, rgba(0, 0, 0, 0.4) 7rpx
+  );
+  opacity: 0.92;
+}
+
+.t-brush-endcap {
+  position: absolute;
+  right: -2rpx;
+  top: 2rpx;
+  width: 6rpx;
+  bottom: 2rpx;
+  border-radius: 2rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #828c9b 100%);
+  box-shadow: 1rpx 0 2rpx rgba(0,0,0,0.3);
+}
