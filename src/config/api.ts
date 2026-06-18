@@ -54,6 +54,7 @@ export const API_ENDPOINTS = {
     delete: (id: number) => `/charging-station/${id}`,
     getById: (id: number) => `/charging-station/${id}`,
   },
+
   // 清洁区域相关
   cleanArea: {
     list: '/clean-area/list',
@@ -89,6 +90,9 @@ export const API_ENDPOINTS = {
     update: (id: number) => `/api/plans/${id}`,
     delete: (id: number) => `/api/plans/${id}`,
   }
+
+
+
 }
 
 // HTTP 超时配置

@@ -682,7 +682,7 @@ $red-soft: rgba(255, 122, 122, 0.16);
   box-sizing: border-box;
 }
 
-.layout-edit-card + .layout-edit-card {
+.layout-edit-card+.layout-edit-card {
   margin-top: 12rpx;
 }
 
@@ -1798,4 +1798,89 @@ $red-soft: rgba(255, 122, 122, 0.16);
   .point-model-coordinate-list {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.path-canvas-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.82));
+  border: 1px solid rgba(100, 116, 139, 0.32);
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-top: 20rpx;
+  box-shadow: 0 12rpx 28rpx rgba(2, 6, 23, 0.32);
+}
+
+.path-canvas {
+  width: 100%;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #07111f;
+  margin-top: 20rpx;
+}
+
+.path-legend {
+  margin-top: 18rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18rpx 24rpx;
+}
+
+
+// .legend-item {
+//   display: flex;
+//   align-items: center;
+//   // gap: 10rpx;
+
+// }
+.legend-item {
+  display: flex;
+  flex-direction: column; // 纵向排列
+  align-items: flex-start;
+  margin-top: 20rpx;
+}
+
+.title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap; // 如果一行放不下，自动换行
+}
+
+// .legend-dot {
+//   width: 38rpx;
+//   height: 28rpx;
+//   border-radius: 4rpx;
+//   // flex-shrink: 0;
+//   margin-left: auto;
+
+//   &.origin {
+//     background: #22ee3d;
+//   }
+
+// }
+.legend-dot {
+  width: 40rpx;
+  height: 28rpx;
+  border-radius: 4rpx;
+  flex-shrink: 0;
+  margin-left: auto;
+
+  &.green {
+    background-color: #22c55e; // 绿色
+  }
+
+  &.red {
+    background-color: #ef4444; // 红色
+  }
+}
+
+.legend-text {
+  font-size: 22rpx;
+  color: rgba(226, 232, 240, 0.78);
 }

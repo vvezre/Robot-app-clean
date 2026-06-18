@@ -5,6 +5,7 @@
 
 import { request } from '../utils/request'
 
+
 interface DeviceStatus {
   deviceId: string
   exists: boolean
@@ -50,6 +51,12 @@ interface DeviceShadowStatus {
   supportedParams?: string[]
   supportedStatusFields?: string[]
   detail?: Record<string, any>
+
+  taskStartLat: number
+  taskStartLon: number
+  currentLat: number
+  currentLon: number
+
 }
 
 class DeviceStatusService {
@@ -91,6 +98,7 @@ class DeviceStatusService {
       const response = await request.get<DeviceShadowStatus>(`/api/device-status/${deviceId}/shadow`)
 
       console.log(`[DeviceStatusService] 设备标准状态查询成功 - 设备: ${deviceId}`, response)
+
       return response
     } catch (error) {
       console.error(`[DeviceStatusService] 设备标准状态查询失败 - 设备: ${deviceId}`, error)

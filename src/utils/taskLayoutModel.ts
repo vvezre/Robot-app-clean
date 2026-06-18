@@ -17,19 +17,19 @@ export type LayoutRangeInput = {
 
 export type LayoutConnector =
   | {
-      type: 'col'
-      rowStart: number
-      rowEnd: number
-      afterCol: number
-      length: number
-    }
+    type: 'col'
+    rowStart: number
+    rowEnd: number
+    afterCol: number
+    length: number
+  }
   | {
-      type: 'row'
-      colStart: number
-      colEnd: number
-      afterRow: number
-      length: number
-    }
+    type: 'row'
+    colStart: number
+    colEnd: number
+    afterRow: number
+    length: number
+  }
 
 export type LayoutConnectorInput = {
   type: 'col' | 'row' | string
@@ -772,12 +772,12 @@ export const connectedLayoutComponents = (
     while (stack.length) {
       const current = stack.pop()!
       component.add(current)
-      ;(adjacency.get(current) || new Set<string>()).forEach(neighbor => {
-        if (!seen.has(neighbor)) {
-          seen.add(neighbor)
-          stack.push(neighbor)
-        }
-      })
+        ; (adjacency.get(current) || new Set<string>()).forEach(neighbor => {
+          if (!seen.has(neighbor)) {
+            seen.add(neighbor)
+            stack.push(neighbor)
+          }
+        })
     }
     components.push(component)
   })
@@ -925,19 +925,19 @@ export const buildLayoutPreview = (layout: LayoutV2, options: LayoutPreviewOptio
   const stepY = Math.round((options.panelHeight + options.gapY) * yProjection)
   const cells = expandCells(layout)
   const components = connectedLayoutComponents(cells, layout.connectors)
-
+  // 面板列表生成 布局中每个独立单元格的位置和尺寸
   const panels = Array.from(cells).map(key => {
     const [row, col] = key.split(':').map(Number)
     const point = pointXY(row, col, stepX, stepY, layout.connectors)
     return { row, col, x: point.x, y: point.y, width: panelWidth, height: panelHeight }
   }).sort((a, b) => b.row - a.row || a.col - b.col)
-
+  // 遍历所有单元格的优化运动轨迹
   const path: LayoutPreviewPoint[] = [{ x: 0, y: 0 }]
   let current = { x: 0, y: 0 }
   const preferredLeftToRight = options.direction !== 'right'
   const remaining = components.slice()
 
-  while (remaining.length) {
+  while (remaining.length) {//剩余待访问列表
     let selectedIndex = 0
     let selectedPlan:
       | ReturnType<typeof buildComponentPath>

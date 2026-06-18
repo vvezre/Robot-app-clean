@@ -815,7 +815,7 @@ export default function Index() {
     }
   }
 
-  // 封装页面切换函数，同时更新 state 和 ref
+  // 封装 页面切换 函数，同时更新 state 和 ref
   const navigateTo = (page: 'scan' | 'home' | 'detail' | 'settings' | 'stats' | 'profile') => {
     const previousPage = currentPageRef.current
     currentPageRef.current = page
@@ -1442,7 +1442,7 @@ export default function Index() {
           <View className="logo-placeholder">
             {/* Logo占位区域，可以后续替换为实际logo图片 */}
           </View>
-          <Text className="logo-title">中拓智能</Text>
+          <Text className="logo-title">智能</Text>
         </View>
 
         {/* 扫描区域 */}
@@ -1565,7 +1565,7 @@ export default function Index() {
         <View className="home-header">
           <View className="header-top">
             <View className="header-main">
-              <Text className="header-title header-title-large">中拓智能</Text>
+              <Text className="header-title header-title-large">中拓{"\n"}智能</Text>
               <Text className="header-subtitle">设备调度控制台</Text>
             </View>
             <View style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1696,7 +1696,7 @@ export default function Index() {
                     setSearchKeyword('')
                   }}
                 >
-                  返回类型
+                  返回设备类型
                 </Button>
                 <Text className="family-list-title">
                   {selectedDeviceFamily === 'D' ? 'D型机器人设备列表' : 'T型机器人设备列表'}
@@ -1747,8 +1747,8 @@ export default function Index() {
                       </View>
                     </View>
 
-                      <View className="robot-status-card-body">
-                        <View className="robot-device-pane">
+                    <View className="robot-status-card-body">
+                      <View className="robot-device-pane">
                         <RobotModel size="mini" family={getRobotFamily(robot)} />
                         <Text className="robot-id">{robot.productId}</Text>
                         <Text className="robot-type">{getProductTypeLabel(robot.productType)}</Text>
@@ -1956,12 +1956,13 @@ export default function Index() {
         value: <>{r.heartbeat != null ? r.heartbeat.toFixed(2) : '-'}<Text className="total-data-unit">s</Text></>,
       } : null,
     ].filter(Boolean) as Array<{ key: string; label: string; value: React.ReactNode; mono?: boolean }>
-
+    // <Back />
     return (
       <ScrollView className={`detail-page ${isTModel ? 'detail-page-t' : 'detail-page-d'}`} scrollY={true}>
         <View className="detail-header">
           <Button className="back-btn" onClick={() => navigateTo('home')}>
-            <Back />
+
+            返回
           </Button>
           <View className="detail-title">
             <Text className="detail-id"></Text>
@@ -2115,93 +2116,93 @@ export default function Index() {
             <>
               {/* 运行数据 */}
               <View className="info-card">
-              <View className="section-title">
-                <View className="section-dot" />
-                <Text>运行数据</Text>
-              </View>
-              <View className="total-data-grid">
+                <View className="section-title">
+                  <View className="section-dot" />
+                  <Text>运行数据</Text>
+                </View>
+                <View className="total-data-grid">
                   {runtimeStatusItems.map(item => (
                     <View key={item.key} className="total-data-item">
                       <Text className="total-data-label">{item.label}</Text>
                       <Text className={`total-data-value${item.mono ? ' total-data-value-mono' : ''}`}>{item.value}</Text>
                     </View>
                   ))}
-              </View>
-            </View>
-
-            <View className="info-card">
-              <View className="section-title">
-                <View className="section-dot" />
-                <Text>最近命令</Text>
-              </View>
-              <View className="total-data-grid">
-                <View className="total-data-item">
-                  <Text className="total-data-label">命令状态</Text>
-                  <Text className="total-data-value">{getCommandStatusLabel(r.lastCommandStatus)}</Text>
-                </View>
-                <View className="total-data-item">
-                  <Text className="total-data-label">命令编号</Text>
-                  <Text className="total-data-value">
-                    {r.lastCommandId ? r.lastCommandId.slice(-8) : '-'}
-                  </Text>
                 </View>
               </View>
-            </View>
 
-            {/* 快捷控制 - 横向滚动 */}
-            {canShowQuickControls && (
               <View className="info-card">
                 <View className="section-title">
                   <View className="section-dot" />
-                  <Text>快捷控制</Text>
+                  <Text>最近命令</Text>
                 </View>
-                <View className="quick-control-grid">
-                  {[
-                    { label: '启动', value: 1 },
-                    { label: '停止', value: 2 },
-                    { label: '复位', value: 3 },
-                    { label: '循环', value: 4 },
-                    { label: '手动', value: 5 },
-                  ].map((btn) => (
-                    <Button
-                      key={btn.value}
-                      className={`quick-control-btn ${settings.runControl === btn.value ? 'quick-control-btn-active' : ''} ${isConfigLoading ? 'quick-control-btn-disabled' : ''}`}
-                      disabled={isConfigLoading}
-                      onClick={async () => {
-                        setSettings(s => ({ ...s, runControl: btn.value }))
-
-                        // 通过后端 API 发送控制命令（安全模式）
-                        if (r) {
-                          try {
-                            // 快捷按钮同样走完整参数下发，避免交互帧覆盖/回退参数
-                            const clientClickTimestamp = Date.now()
-                            const apiConfig = {
-                              ...buildApiConfig(btn.value),
-                              quickAction: true,
-                              clientClickTimestamp,
-                            }
-                            const result = await deviceControlService.sendCommand(apiConfig)
-                            startCommandStatusPolling(apiConfig.deviceId, result.commandId, result.commandStatus)
-
-                            if (result.success) {
-                              showToast(`${btn.label}`)
-                            } else {
-                              showToast(`${btn.label} (失败)`)
-                            }
-                          } catch (error) {
-                            showToast(`${btn.label} (失败)`)
-                          }
-                        } else {
-                          showToast(`${btn.label}`)
-                        }
-                      }}
-                    >
-                      {btn.label}
-                    </Button>
-                  ))}
+                <View className="total-data-grid">
+                  <View className="total-data-item">
+                    <Text className="total-data-label">命令状态</Text>
+                    <Text className="total-data-value">{getCommandStatusLabel(r.lastCommandStatus)}</Text>
+                  </View>
+                  <View className="total-data-item">
+                    <Text className="total-data-label">命令编号</Text>
+                    <Text className="total-data-value">
+                      {r.lastCommandId ? r.lastCommandId.slice(-8) : '-'}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            )}
+
+              {/* 快捷控制 - 横向滚动 */}
+              {canShowQuickControls && (
+                <View className="info-card">
+                  <View className="section-title">
+                    <View className="section-dot" />
+                    <Text>快捷控制</Text>
+                  </View>
+                  <View className="quick-control-grid">
+                    {[
+                      { label: '启动', value: 1 },
+                      { label: '停止', value: 2 },
+                      { label: '复位', value: 3 },
+                      { label: '循环', value: 4 },
+                      { label: '手动', value: 5 },
+                    ].map((btn) => (
+                      <Button
+                        key={btn.value}
+                        className={`quick-control-btn ${settings.runControl === btn.value ? 'quick-control-btn-active' : ''} ${isConfigLoading ? 'quick-control-btn-disabled' : ''}`}
+                        disabled={isConfigLoading}
+                        onClick={async () => {
+                          setSettings(s => ({ ...s, runControl: btn.value }))
+
+                          // 通过后端 API 发送控制命令（安全模式）
+                          if (r) {
+                            try {
+                              // 快捷按钮同样走完整参数下发，避免交互帧覆盖/回退参数
+                              const clientClickTimestamp = Date.now()
+                              const apiConfig = {
+                                ...buildApiConfig(btn.value),
+                                quickAction: true,
+                                clientClickTimestamp,
+                              }
+                              const result = await deviceControlService.sendCommand(apiConfig)
+                              startCommandStatusPolling(apiConfig.deviceId, result.commandId, result.commandStatus)
+
+                              if (result.success) {
+                                showToast(`${btn.label}`)
+                              } else {
+                                showToast(`${btn.label} (失败)`)
+                              }
+                            } catch (error) {
+                              showToast(`${btn.label} (失败)`)
+                            }
+                          } else {
+                            showToast(`${btn.label}`)
+                          }
+                        }}
+                      >
+                        {btn.label}
+                      </Button>
+                    ))}
+                  </View>
+                </View>
+              )}
             </>
           )}
 
@@ -3333,12 +3334,12 @@ export default function Index() {
 
     const PLACEHOLDER_ALARMS: AlarmItem[] = [
       { id: '1', deviceId: '-D01250001', severity: 'critical', type: '电量严重不足', description: '设备电量低于 10%，请立即充电', time: '今日 09:32', status: 'unhandled' },
-      { id: '2', deviceId: '-D12250001', severity: 'warning',  type: '设备离线超时', description: '超过 30 分钟未收到心跳数据', time: '今日 08:15', status: 'unhandled' },
-      { id: '3', deviceId: '-D01250003', severity: 'warning',  type: '连续故障上报', description: '故障码持续上报，请检查设备', time: '今日 07:50', status: 'unhandled' },
-      { id: '4', deviceId: '-D11250001', severity: 'warning',  type: '电量不足',     description: '设备电量低于 20%', time: '昨日 17:22', status: 'handled' },
-      { id: '5', deviceId: '-D01250002', severity: 'info',     type: '固件版本过低', description: '建议升级至最新固件版本', time: '昨日 15:44', status: 'handled' },
+      { id: '2', deviceId: '-D12250001', severity: 'warning', type: '设备离线超时', description: '超过 30 分钟未收到心跳数据', time: '今日 08:15', status: 'unhandled' },
+      { id: '3', deviceId: '-D01250003', severity: 'warning', type: '连续故障上报', description: '故障码持续上报，请检查设备', time: '今日 07:50', status: 'unhandled' },
+      { id: '4', deviceId: '-D11250001', severity: 'warning', type: '电量不足', description: '设备电量低于 20%', time: '昨日 17:22', status: 'handled' },
+      { id: '5', deviceId: '-D01250002', severity: 'info', type: '固件版本过低', description: '建议升级至最新固件版本', time: '昨日 15:44', status: 'handled' },
       { id: '6', deviceId: '-D12250001', severity: 'critical', type: 'MQTT 连接异常', description: '设备多次重连失败，请检查网络', time: '2天前', status: 'ignored' },
-      { id: '7', deviceId: '-D01250001', severity: 'info',     type: '首次上线',     description: '设备首次接入系统，已自动注册', time: '3天前', status: 'handled' },
+      { id: '7', deviceId: '-D01250001', severity: 'info', type: '首次上线', description: '设备首次接入系统，已自动注册', time: '3天前', status: 'handled' },
     ]
 
     const severityFilter = alarmSeverityFilter
@@ -3355,10 +3356,10 @@ export default function Index() {
     const statusLabel: Record<AlarmStatus, string> = { unhandled: '未处理', handled: '已处理', ignored: '已忽略' }
 
     const statusOptions = [
-      { key: 'all'       as const, label: '全部' },
+      { key: 'all' as const, label: '全部' },
       { key: 'unhandled' as const, label: '未处理' },
-      { key: 'handled'   as const, label: '已处理' },
-      { key: 'ignored'   as const, label: '已忽略' },
+      { key: 'handled' as const, label: '已处理' },
+      { key: 'ignored' as const, label: '已忽略' },
     ]
 
     return (

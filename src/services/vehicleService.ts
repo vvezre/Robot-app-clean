@@ -5,6 +5,7 @@
 
 import request from '../utils/request'
 
+
 interface Vehicle {
   id: number
   companyCode: string
@@ -23,6 +24,8 @@ interface Vehicle {
   createTime: string
   updateTime: string
 }
+
+
 
 /**
  * 小程序/App 机器人设备响应（从 /api/mini-app/devices 获取）
@@ -215,7 +218,25 @@ class VehicleService {
       },
     }
   }
+  /**
+    * 测试Vehicleinfo
+    */
+  // async getVehicleInfo(): Promise<Vehicleinfo[]> {
+  //   try {
+  //     console.log('[Vehicleinfo] ========== 开始获取数据 ==========')
 
+  //     const response = await request.get<Vehicleinfo[]>('/vehicle/getVehicleInfo')
+
+  //     console.log(`[Vehicleinfo] ✅ 获取到 ${response.length} `)
+
+
+  //     return response
+
+  //   } catch (error: any) {
+  //     console.error('[Vehicleinfo] ❌ 获取失败:', error)
+  //     throw error
+  //   }
+  // }
   /**
    * 扫码绑定设备
    */
@@ -236,6 +257,7 @@ class VehicleService {
       throw error
     }
   }
+
 
   /**
    * 获取小程序设备列表（含实时状态）

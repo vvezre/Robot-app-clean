@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Input, ScrollView, Text, View } from '@tarojs/components'
+import { Canvas, Button, Input, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import PathCanvas from '../../components/PathCanvas'
 import RobotModel from '../../components/RobotModel'
 import tRailcarService from '../../services/tRailcarService'
+import deviceStatusService from '../../services/deviceStatusService'
 import type { TRailcarTaskPathPayload } from '../../services/tRailcarService'
 import {
   buildLayoutPreview,
@@ -101,7 +102,7 @@ type LayoutConnectorDraft = {
   afterRow: string
   length: string
 }
-
+// 
 const JOYSTICK_MAX_DISTANCE = 50
 const JOYSTICK_DEAD_ZONE = 0.12
 const JOYSTICK_THROTTLE_MS = 180
@@ -412,7 +413,7 @@ const extractErrorMessage = (error: unknown, fallback: string) => {
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
 const roundJoystickAxis = (value: number) => Number(value.toFixed(2))
-
+// 方向
 const getJoystickDirectionLabel = ({ x, y, power }: JoystickVector) => {
   if (power <= 0) {
     return '中心'
@@ -458,6 +459,9 @@ const parseIntegerList = (value: string, fieldName: string) => value
   .map(item => parseInteger(item, fieldName))
 
 export default function TRailcarStatusPage() {
+  const [taskdistance, setTaskdistance] = useState(0)
+  const [taskstartToleranceM, setTaskStartToleranceM] = useState(0)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [activeTab, setActiveTab] = useState<ConsoleTab>('control')
   const [productId, setProductId] = useState('250001')
   const [taskPath, setTaskPath] = useState<TRailcarTaskPathPayload | null>(null)
@@ -572,10 +576,10 @@ export default function TRailcarStatusPage() {
           typeof message.heading === 'number'
             ? message.heading
             : taskPathRef.current?.segments?.[
-                typeof message.curTaskIndex === 'number'
-                  ? message.curTaskIndex
-                  : currentTaskIndexRef.current || 0
-              ]?.heading
+              typeof message.curTaskIndex === 'number'
+                ? message.curTaskIndex
+                : currentTaskIndexRef.current || 0
+            ]?.heading
 
         setCurrentPoint({
           x: message.localX,
@@ -1627,6 +1631,112 @@ export default function TRailcarStatusPage() {
       ) : null}
     </View>
   )
+  const loadData = async () => {
+    const fullDeviceId = `-T01${productId}`
+    try {
+      const res = await deviceStatusService.getDeviceShadow(fullDeviceId)
+      console.log('getDeviceShadow接口返回:', res)
+      setTaskdistance(res.detail.distanceToTaskOriginM)
+      setTaskStartToleranceM(res.detail.taskOriginToleranceM)
+      console.log('当前距离:', taskdistance, " 容错范围", taskstartToleranceM)  // ✅ 读取全局变量
+      const points = [
+        {
+          x: res.detail.taskStartLat,
+          y: res.detail.taskStartLon,
+          type: 'origin',
+          label: '原点位置'
+        },
+        {
+          x: res.detail.currentLat,
+          y: res.detail.currentLon,
+          type: 'vehicle',
+          label: '机器人位置'
+        },
+      ].filter(p => p.x != null && p.y != null)  // 过滤掉空值
+
+      console.log('原始点位:', points)
+
+      const ctx = Taro.createCanvasContext('path-canvas')
+      const query = Taro.createSelectorQuery()
+
+      query.select('.path-canvas').boundingClientRect((rect: any) => {
+        if (!rect) {
+          console.warn('元素未找到')
+          return
+        }
+
+        const canvasWidth = rect.width
+        const canvasHeight = rect.height
+
+        // ===== 1. 画灰色网格 =====
+        ctx.setStrokeStyle('rgba(255, 255, 255, 0.08)')
+        ctx.setLineWidth(0.5)
+
+        for (let x = 0; x <= canvasWidth; x += 20) {
+          ctx.beginPath()
+          ctx.moveTo(x, 0)
+          ctx.lineTo(x, canvasHeight)
+          ctx.stroke()
+        }
+
+        for (let y = 0; y <= canvasHeight; y += 20) {
+          ctx.beginPath()
+          ctx.moveTo(0, y)
+          ctx.lineTo(canvasWidth, y)
+          ctx.stroke()
+        }
+
+        // ===== 2. 画点位 =====
+        points.forEach(point => {
+          // 画圆点
+          if (point.type === 'origin') {
+            ctx.setFillStyle('#22d3ee')   // 青色
+          } else if (point.type === 'vehicle') {
+            ctx.setFillStyle('#2f10db')   // 蓝色
+          } else {
+            ctx.setFillStyle('#ffffff')   // 默认白色
+          }
+
+          ctx.beginPath()
+          ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI)
+          ctx.fill()
+
+          // 画文字标注
+          ctx.setFillStyle('#ffffff')
+          ctx.setFontSize(12)
+          ctx.fillText(point.label, point.x + 16, point.y + 4)
+        })
+
+        // ===== 3. 最后渲染到画布 =====
+        ctx.draw()
+        // debugger
+
+      }).exec()
+
+
+    } catch (error) {
+      console.error('getDeviceShadow加载失败:', error)
+    }
+
+
+
+  }
+
+
+  useEffect(() => {
+
+
+
+    // ✅ 调用 async 函数
+    loadData()
+
+    // 设置定时器，每 3 秒请求一次
+    timerRef.current = setInterval(() => {
+      loadData()
+    }, 3000)  // 3000ms = 3秒
+
+
+  }, [])  // 空数组 = 只在组件挂载时执行一次
 
   return (
     <ScrollView className="t-railcar-page" scrollY={!joystickActive}>
@@ -1658,236 +1768,261 @@ export default function TRailcarStatusPage() {
 
       {activeTab === 'control' ? (
         <>
-      <View className="section section--priority">
-        <View className="path-priority-card">
-          <View className="path-section-header">
-            <View>
-              <Text className="section-title">路径预览</Text>
-              <Text className="path-priority-summary">
-                首屏先看真实任务轨迹，再看启动条件和控制状态。
-              </Text>
-            </View>
-            <Button className="path-refresh-btn" onClick={handleRefreshPath} disabled={pathLoading}>
-              {pathLoading ? '刷新中' : '刷新路径'}
-            </Button>
-          </View>
+          <View className="section section--priority">
+            <View className="path-priority-card">
+              <View className="path-section-header">
+                <View>
+                  <Text className="section-title">路径预览</Text>
+                  <Text className="path-priority-summary">
+                    首屏先看真实任务轨迹，再看启动条件和控制状态。
+                  </Text>
+                </View>
+                <Button className="path-refresh-btn" onClick={handleRefreshPath} disabled={pathLoading}>
+                  {pathLoading ? '刷新中' : '刷新路径'}
+                </Button>
+              </View>
 
-          {pathSegmentCount ? (
-            <PathCanvas
-              segments={taskPath!.segments}
-              currentPoint={currentPoint}
-              currentTaskIndex={currentTaskIndex}
-            />
-          ) : (
-            <View className="path-empty-card">
-              <Text className="path-empty-title">
-                {pathLoading ? '正在拉取真实路径...' : '暂无真实路径数据'}
-              </Text>
-              <Text className="path-empty-text">
-                {pathError || '还没有收到 Python 返回的 get_task_path 结果，可以先刷新一次路径。'}
-              </Text>
-            </View>
-          )}
-
-          <View className="path-preview-meta">
-            <Text className="path-preview-meta-text">
-              {pathSegmentCount
-                ? `当前显示的是云平台缓存的真实任务路径，共 ${pathSegmentCount} 段。`
-                : '当前还没有拿到真实路径缓存，所以这里只展示空态提示。'}
-            </Text>
-          </View>
-
-          {showRuntimeBanner && (
-            <View className={`runtime-banner runtime-banner--${runtimeBannerTone}`}>
-              <Text className="runtime-banner-title">
-                启动条件：{showControlState ? resolveControlStateLabel(snapshot.controlState) : '启动提示'}
-              </Text>
-              <Text className="runtime-banner-text">
-                {visibleStartCheckReason || '当前没有新的阻塞信息。'}
-              </Text>
-              {typeof startDistance === 'number' && typeof startTolerance === 'number' && (
-                <Text className="runtime-banner-text">
-                  距任务起点 {startDistance.toFixed(2)} m，允许范围 {startTolerance.toFixed(2)} m
-                </Text>
+              {pathSegmentCount ? (
+                <PathCanvas
+                  segments={taskPath!.segments}
+                  currentPoint={currentPoint}
+                  currentTaskIndex={currentTaskIndex}
+                />
+              ) : (
+                <View className="path-empty-card">
+                  <Text className="path-empty-title">
+                    {pathLoading ? '正在拉取真实路径...' : '暂无真实路径数据'}
+                  </Text>
+                  <Text className="path-empty-text">
+                    {pathError || '还没有收到 Python 返回的 get_task_path 结果，可以先刷新一次路径。'}
+                  </Text>
+                </View>
               )}
-            </View>
-          )}
 
-          <View className="console-actions console-actions--primary">
-            {renderCommandButton('start', 'console-action-btn--start')}
-            {renderCommandButton('stop', 'console-action-btn--stop')}
-          </View>
-
-          <View className="manual-control-panel">
-            <View className="manual-control-header">
-              <Text className="manual-control-title">手动控制</Text>
-              <Text className="manual-control-subtitle">拖动摇杆实时控制，松手自动停止。</Text>
-            </View>
-
-            <View className="joystick-card">
-              <View
-                className={`joystick-surface ${joystickActive ? 'joystick-surface--active' : ''}`}
-                onTouchStart={handleJoystickTouchStart}
-                onTouchMove={handleJoystickTouchMove}
-                onTouchEnd={resetJoystick}
-                onTouchCancel={resetJoystick}
-              >
-                <View className="joystick-axis joystick-axis--x" />
-                <View className="joystick-axis joystick-axis--y" />
-                <View className="joystick-ring joystick-ring--outer" />
-                <View className="joystick-ring joystick-ring--inner" />
-                <View
-                  className={`joystick-knob ${joystickActive ? 'joystick-knob--active' : ''}`}
-                  style={joystickKnobStyle}
-                >
-                  <Text className="joystick-knob-text">{joystickActive ? '控制' : '摇杆'}</Text>
-                </View>
+              <View className="path-preview-meta">
+                <Text className="path-preview-meta-text">
+                  {pathSegmentCount
+                    ? `当前显示的是云平台缓存的真实任务路径，共 ${pathSegmentCount} 段。`
+                    : '当前还没有拿到真实路径缓存，所以这里只展示空态提示。'}
+                </Text>
               </View>
 
-              <View className="joystick-readout">
-                <View className="joystick-readout-item">
-                  <Text className="joystick-readout-label">方向</Text>
-                  <Text className="joystick-readout-value">{joystickDirectionLabel}</Text>
-                </View>
-                <View className="joystick-readout-item">
-                  <Text className="joystick-readout-label">强度</Text>
-                  <Text className="joystick-readout-value">{joystickVector.power}%</Text>
-                </View>
-                <View className="joystick-readout-item">
-                  <Text className="joystick-readout-label">向量</Text>
-                  <Text className="joystick-readout-value">
-                    {joystickVector.x.toFixed(2)} / {joystickVector.y.toFixed(2)}
+              {showRuntimeBanner && (
+                <View className={`runtime-banner runtime-banner--${runtimeBannerTone}`}>
+                  <Text className="runtime-banner-title">
+                    启动条件：{showControlState ? resolveControlStateLabel(snapshot.controlState) : '启动提示'}
                   </Text>
+                  <Text className="runtime-banner-text">
+                    {visibleStartCheckReason || '当前没有新的阻塞信息。'}
+                  </Text>
+                  {typeof startDistance === 'number' && typeof startTolerance === 'number' && (
+                    <Text className="runtime-banner-text">
+                      距任务起点 {startDistance.toFixed(2)} m，允许范围 {startTolerance.toFixed(2)} m
+                    </Text>
+                  )}
                 </View>
+              )}
+              <View className='path-canvas-card'>
+                <View className='legend-item'>
+                  {/* 第一行：标题 */}
+                  <View className="title-row">
+                    <Text className="manual-control-title">点位调整</Text>
+                  </View>
+
+                  {/* 第二行：信息和图标 */}
+                  <View className="info-row">
+                    <Text className="manual-control-title">容错范围：{taskstartToleranceM.toFixed(2)}厘米</Text>
+                    <Text className="manual-control-title">当前距离：{taskdistance.toFixed(2)}厘米 </Text>
+                    {/* <View className='legend-dot origin' /> */}
+                    <View className={`legend-dot ${taskdistance <= taskstartToleranceM ? 'green' : 'red'}`} />
+                  </View>
+                </View>
+                <Canvas
+                  className='path-canvas'
+                  canvasId='path-canvas'
+                  style={{ width: '100%', height: `150px` }}
+                />
+
+
+
               </View>
 
-              <Text className="joystick-status">{joystickStatus}</Text>
-            </View>
 
-            <View className="manual-control-pad">
-              <View className="manual-control-spacer" />
-              {renderCommandButton('forward', 'console-action-btn--manual')}
-              <View className="manual-control-spacer" />
-              {renderCommandButton('turnLeft', 'console-action-btn--rotate')}
-              {renderCommandButton('stop', 'console-action-btn--pad-stop')}
-              {renderCommandButton('turnRight', 'console-action-btn--rotate')}
-              <View className="manual-control-spacer" />
-              {renderCommandButton('backward', 'console-action-btn--manual')}
-              <View className="manual-control-spacer" />
+              <View className="console-actions console-actions--primary">
+                {renderCommandButton('start', 'console-action-btn--start')}{/* 启动 */}
+                {renderCommandButton('stop', 'console-action-btn--stop')}{/* 停止 */}
+              </View>
+
+              <View className="manual-control-panel">
+                <View className="manual-control-header">
+                  <Text className="manual-control-title">手动控制</Text>
+                  <Text className="manual-control-subtitle">拖动摇杆实时控制，松手自动停止。</Text>
+                </View>
+
+                <View className="joystick-card">
+                  <View
+                    className={`joystick-surface ${joystickActive ? 'joystick-surface--active' : ''}`}
+                    onTouchStart={handleJoystickTouchStart}
+                    onTouchMove={handleJoystickTouchMove}
+                    onTouchEnd={resetJoystick}
+                    onTouchCancel={resetJoystick}
+                  >
+                    <View className="joystick-axis joystick-axis--x" />
+                    <View className="joystick-axis joystick-axis--y" />
+                    <View className="joystick-ring joystick-ring--outer" />
+                    <View className="joystick-ring joystick-ring--inner" />
+                    <View
+                      className={`joystick-knob ${joystickActive ? 'joystick-knob--active' : ''}`}
+                      style={joystickKnobStyle}
+                    >
+                      <Text className="joystick-knob-text">{joystickActive ? '控制' : '摇杆'}</Text>
+                    </View>
+                  </View>
+
+                  <View className="joystick-readout">
+                    <View className="joystick-readout-item">
+                      <Text className="joystick-readout-label">方向</Text>
+                      <Text className="joystick-readout-value">{joystickDirectionLabel}</Text>
+                    </View>
+                    <View className="joystick-readout-item">
+                      <Text className="joystick-readout-label">强度</Text>
+                      <Text className="joystick-readout-value">{joystickVector.power}%</Text>
+                    </View>
+                    <View className="joystick-readout-item">
+                      <Text className="joystick-readout-label">向量</Text>
+                      <Text className="joystick-readout-value">
+                        {joystickVector.x.toFixed(2)} / {joystickVector.y.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text className="joystick-status">{joystickStatus}</Text>
+                </View>
+
+                <View className="manual-control-pad">
+                  <View className="manual-control-spacer" />
+                  {renderCommandButton('forward', 'console-action-btn--manual')}
+                  <View className="manual-control-spacer" />
+                  {renderCommandButton('turnLeft', 'console-action-btn--rotate')}
+                  {renderCommandButton('stop', 'console-action-btn--pad-stop')}
+                  {renderCommandButton('turnRight', 'console-action-btn--rotate')}
+                  <View className="manual-control-spacer" />
+                  {renderCommandButton('backward', 'console-action-btn--manual')}
+                  <View className="manual-control-spacer" />
+                </View>
+              </View>
             </View>
           </View>
-        </View>
-      </View>
         </>
-      ) : activeTab === 'status' ? (
+      ) : activeTab === 'status' ? (//状态页面
         <>
-      <View className="section section--status-overview">
-        <View className="status-overview-card">
-          <View className="status-overview-header">
-            <Text className="status-overview-title">设备状态</Text>
-            <Text className="status-overview-link">查看详情 ›</Text>
-          </View>
-
-          <View className="status-overview-body">
-            <View className="status-device-pane">
-              <RobotModel size="status" family="T" />
-              <Text className="status-device-name">机器人{productId}</Text>
-              <View className={`status-online-dot ${socketConnected ? 'online' : 'offline'}`} />
-              <Text className={`status-device-online ${socketConnected ? 'online' : 'offline'}`}>
-                {socketConnected ? '在线' : '重连中'}
-              </Text>
-            </View>
-
-            <View className="status-metric-grid">
-              <View className={`status-metric-card status-metric-card--${statusTone}`}>
-                <View>
-                  <Text className="status-metric-label">运行状态</Text>
-                  <Text className="status-metric-value status-metric-value--blue">{statusLabel}</Text>
-                </View>
-                <View className="status-metric-icon status-metric-icon--clock">↻</View>
+          <View className="section section--status-overview">
+            <View className="status-overview-card">
+              <View className="status-overview-header">
+                <Text className="status-overview-title">设备状态</Text>
+                <Text className="status-overview-link">查看详情 ›</Text>
               </View>
-              <View className="status-metric-card status-metric-card--battery">
-                <View>
-                  <Text className="status-metric-label">电量</Text>
-                  <Text className="status-metric-value status-metric-value--green">
-                    {typeof snapshot.battery === 'number' ? `${snapshot.battery.toFixed(0)}%` : '--'}
+
+              <View className="status-overview-body">
+                <View className="status-device-pane">
+                  <RobotModel size="status" family="T" />
+                  <Text className="status-device-name">机器人{productId}</Text>
+                  <View className={`status-online-dot ${socketConnected ? 'online' : 'offline'}`} />
+                  <Text className={`status-device-online ${socketConnected ? 'online' : 'offline'}`}>
+                    {socketConnected ? '在线' : '重连中'}
                   </Text>
                 </View>
-                <View className="status-metric-icon status-metric-icon--battery">▯</View>
-              </View>
-              <View className="status-metric-card">
-                <View>
-                  <Text className="status-metric-label">任务进度</Text>
-                  <Text className="status-metric-value">{taskProgressText}</Text>
+
+                <View className="status-metric-grid">
+                  <View className={`status-metric-card status-metric-card--${statusTone}`}>
+                    <View>
+                      <Text className="status-metric-label">运行状态</Text>
+                      <Text className="status-metric-value status-metric-value--blue">{statusLabel}</Text>
+                    </View>
+                    <View className="status-metric-icon status-metric-icon--clock">↻</View>
+                  </View>
+                  <View className="status-metric-card status-metric-card--battery">
+                    <View>
+                      <Text className="status-metric-label">电量</Text>
+                      <Text className="status-metric-value status-metric-value--green">
+                        {typeof snapshot.battery === 'number' ? `${snapshot.battery.toFixed(0)}%` : '--'}
+                      </Text>
+                    </View>
+                    <View className="status-metric-icon status-metric-icon--battery">▯</View>
+                  </View>
+                  <View className="status-metric-card">
+                    <View>
+                      <Text className="status-metric-label">任务进度</Text>
+                      <Text className="status-metric-value">{taskProgressText}</Text>
+                    </View>
+                    <View className="status-metric-icon status-metric-icon--path">⌘</View>
+                  </View>
+                  <View className="status-metric-card">
+                    <View>
+                      <Text className="status-metric-label">运行速度</Text>
+                      <Text className="status-metric-value">
+                        {formatNumber(reportedSpeed, 0, '')}
+                        <Text className="status-metric-unit"> cm/s</Text>
+                      </Text>
+                    </View>
+                    <View className="status-metric-icon status-metric-icon--speed">◷</View>
+                  </View>
                 </View>
-                <View className="status-metric-icon status-metric-icon--path">⌘</View>
               </View>
-              <View className="status-metric-card">
-                <View>
-                  <Text className="status-metric-label">运行速度</Text>
-                  <Text className="status-metric-value">
-                    {formatNumber(reportedSpeed, 0, '')}
-                    <Text className="status-metric-unit"> cm/s</Text>
-                  </Text>
-                </View>
-                <View className="status-metric-icon status-metric-icon--speed">◷</View>
+
+              <View className="status-overview-footer">
+                <Text className="status-overview-meta">最近上报：{formatTimestamp(latestTimestamp)}</Text>
+                <Text className="status-overview-meta">raw: {rawStatus || '--'}</Text>
               </View>
             </View>
           </View>
 
-          <View className="status-overview-footer">
-            <Text className="status-overview-meta">最近上报：{formatTimestamp(latestTimestamp)}</Text>
-            <Text className="status-overview-meta">raw: {rawStatus || '--'}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View className="section section--status-fields">
-        <Text className="section-title">实时字段</Text>
-        <View className="status-card-grid status-card-grid--compact">
-          {statusCards.slice(1).map(card => (
-            <View
-              key={card.label}
-              className={`status-card-panel ${card.tone ? `status-card-panel--${card.tone}` : ''}`}
-            >
-              <Text className="status-card-label">{card.label}</Text>
-              <Text className="status-card-value">{card.value}</Text>
-              <Text className="status-card-meta">{card.meta}</Text>
+          <View className="section section--status-fields">
+            <Text className="section-title">实时字段</Text>
+            <View className="status-card-grid status-card-grid--compact">
+              {statusCards.slice(1).map(card => (
+                <View
+                  key={card.label}
+                  className={`status-card-panel ${card.tone ? `status-card-panel--${card.tone}` : ''}`}
+                >
+                  <Text className="status-card-label">{card.label}</Text>
+                  <Text className="status-card-value">{card.value}</Text>
+                  <Text className="status-card-meta">{card.meta}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-      </View>
+          </View>
 
-      <View className="section">
-        <Text className="section-title">定位信息</Text>
-        <View className="detail-grid">
-          <View className="detail-card">
-            <Text className="detail-card-label">经纬度</Text>
-            <Text className="detail-card-value">
-              {formatCoordinate(snapshot.lat)} / {formatCoordinate(snapshot.lon)}
-            </Text>
+          <View className="section">
+            <Text className="section-title">定位信息</Text>
+            <View className="detail-grid">
+              <View className="detail-card">
+                <Text className="detail-card-label">经纬度</Text>
+                <Text className="detail-card-value">
+                  {formatCoordinate(snapshot.lat)} / {formatCoordinate(snapshot.lon)}
+                </Text>
+              </View>
+              <View className="detail-card">
+                <Text className="detail-card-label">坐标系位置</Text>
+                <Text className="detail-card-value">
+                  {formatNumber(snapshot.localX, 0)} / {formatNumber(snapshot.localY, 0)}
+                </Text>
+              </View>
+              <View className="detail-card">
+                <Text className="detail-card-label">最新命令</Text>
+                <Text className="detail-card-value">
+                  {formatValue(snapshot.lastCommandStatus)} / {commandIdShort}
+                </Text>
+              </View>
+              <View className="detail-card">
+                <Text className="detail-card-label">命令反馈</Text>
+                <Text className="detail-card-value">{formatValue(snapshot.lastCommandMessage)}</Text>
+              </View>
+            </View>
           </View>
-          <View className="detail-card">
-            <Text className="detail-card-label">坐标系位置</Text>
-            <Text className="detail-card-value">
-              {formatNumber(snapshot.localX, 0)} / {formatNumber(snapshot.localY, 0)}
-            </Text>
-          </View>
-          <View className="detail-card">
-            <Text className="detail-card-label">最新命令</Text>
-            <Text className="detail-card-value">
-              {formatValue(snapshot.lastCommandStatus)} / {commandIdShort}
-            </Text>
-          </View>
-          <View className="detail-card">
-            <Text className="detail-card-label">命令反馈</Text>
-            <Text className="detail-card-value">{formatValue(snapshot.lastCommandMessage)}</Text>
-          </View>
-        </View>
-      </View>
 
         </>
-      ) : (
+      ) : (//任务页面
         <>
           <View className="section">
             <View className="task-panel">
@@ -2207,9 +2342,10 @@ export default function TRailcarStatusPage() {
             </View>
           </View>
         </>
-      )}
+      )
+      }
 
       <View className="bottom-space" />
-    </ScrollView>
+    </ScrollView >
   )
 }
