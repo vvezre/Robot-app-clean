@@ -461,7 +461,10 @@ const parseIntegerList = (value: string, fieldName: string) => value
 export default function TRailcarStatusPage() {
   const [taskdistance, setTaskdistance] = useState(0)
   const [taskstartToleranceM, setTaskStartToleranceM] = useState(0)
+  // const [taskproductId, setTaskProductId] = useState('')
+  const [taskProductId, setTaskProductId] = useState<string>('')
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const [taskmsg, setTaskmsg] = useState<string>('⏳正在获取定位信息...')
   const [activeTab, setActiveTab] = useState<ConsoleTab>('control')
   const [productId, setProductId] = useState('250001')
   const [taskPath, setTaskPath] = useState<TRailcarTaskPathPayload | null>(null)
@@ -495,10 +498,32 @@ export default function TRailcarStatusPage() {
     const instance = Taro.getCurrentInstance()
     const urlProductId = instance.router?.params?.productId
     if (urlProductId) {
+      console.log("========urlProductId" + urlProductId)
+      setTaskProductId(`-T01${urlProductId}`)
       setProductId(urlProductId)
+
     }
   }, [])
+  // 监听 taskProductId，启动轮询
+  useEffect(() => {
+    console.log('taskProductId 变化了:', taskProductId)  // 看这里有没有输出
 
+    if (!taskProductId) return
+
+    // 清空旧定时器
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+    }
+
+    loadData()
+    timerRef.current = setInterval(loadData, 3000)
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [taskProductId])
   useEffect(() => {
     taskPathRef.current = taskPath
   }, [taskPath])
@@ -556,11 +581,14 @@ export default function TRailcarStatusPage() {
 
   useEffect(() => {
     const fullDeviceId = `-T01${productId}`
-
+    console.log("======productId=======" + productId)
+    setTaskProductId(fullDeviceId)
     websocketService.connect((message: WebSocketMessage) => {
+
       if (message.deviceId !== fullDeviceId) {
         return
       }
+
 
       setSnapshot(prev => ({
         ...prev,
@@ -595,6 +623,7 @@ export default function TRailcarStatusPage() {
       websocketService.unsubscribeDevice(fullDeviceId)
       websocketService.disconnect()
     }
+
   }, [productId])
 
   const handleRefreshPath = () => {
@@ -1632,14 +1661,15 @@ export default function TRailcarStatusPage() {
     </View>
   )
   const loadData = async () => {
-    const fullDeviceId = `-T01${productId}`
+    // taskProductId 变化了: -T01250002
     try {
-      const res = await deviceStatusService.getDeviceShadow(fullDeviceId)
-      console.log('getDeviceShadow接口返回:', res)
+      const res = await deviceStatusService.getDeviceShadow(taskProductId)
+      // console.log('id接口返回:', taskProductId)
+      // console.log('getDeviceShadow接口返回:', res)
       setTaskdistance(res.detail.distanceToTaskOriginM)
       setTaskStartToleranceM(res.detail.taskOriginToleranceM)
-      console.log('当前距离:', taskdistance, " 容错范围", taskstartToleranceM)  // ✅ 读取全局变量
-      const points = [
+
+      const rawPoints = [
         {
           x: res.detail.taskStartLat,
           y: res.detail.taskStartLon,
@@ -1654,7 +1684,23 @@ export default function TRailcarStatusPage() {
         },
       ].filter(p => p.x != null && p.y != null)  // 过滤掉空值
 
-      console.log('原始点位:', points)
+      console.log('原始点位:', rawPoints)
+      // ===== 2. 检查数据有效性 =====
+      if (rawPoints.length === 0) {
+        setTaskmsg('❌ 无点位数据,请检查传感器或定位信号')
+      } else if (rawPoints.length > 0) {
+        const distanceCm = Number((res.detail.distanceToTaskOriginM * 100).toFixed(2));
+        const toleranceCm = Number((res.detail.taskOriginToleranceM * 100).toFixed(2));
+        console.log(" 容错范围", toleranceCm,
+          ' 当前距离:', distanceCm
+        )  // ✅ 读取全局变量
+
+        if (distanceCm <= toleranceCm) {
+          setTaskmsg('✅ 点位已对齐,可以启动')
+        } else {
+          setTaskmsg('⚠️ 点位未对齐,请调整位置')
+        }
+      }
 
       const ctx = Taro.createCanvasContext('path-canvas')
       const query = Taro.createSelectorQuery()
@@ -1667,10 +1713,60 @@ export default function TRailcarStatusPage() {
 
         const canvasWidth = rect.width
         const canvasHeight = rect.height
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+        const lats = rawPoints.map(p => p.x)  // 纬度
+        const lngs = rawPoints.map(p => p.y)  // 经度
 
-        // ===== 1. 画灰色网格 =====
-        ctx.setStrokeStyle('rgba(255, 255, 255, 0.08)')
-        ctx.setLineWidth(0.5)
+        const minLat = Math.min(...lats)
+        const maxLat = Math.max(...lats)
+        const minLng = Math.min(...lngs)
+        const maxLng = Math.max(...lngs)
+        const latRange = Math.max(maxLat - minLat, 0.0001)
+        const lngRange = Math.max(maxLng - minLng, 0.0001)
+
+        const zoomFactor = 2  // 放大倍数，1 = 原始，2 = 2倍
+
+        const centerLat = (minLat + maxLat) / 2
+        const centerLng = (minLng + maxLng) / 2
+
+        const zoomedLatRange = latRange / zoomFactor
+        const zoomedLngRange = lngRange / zoomFactor
+
+        const newMinLat = centerLat - zoomedLatRange / 2
+        const newMaxLat = centerLat + zoomedLatRange / 2
+        const newMinLng = centerLng - zoomedLngRange / 2
+        const newMaxLng = centerLng + zoomedLngRange / 2
+
+        function toCanvas(lat, lng) {
+          const y = ((newMaxLat - lat) / (newMaxLat - newMinLat)) * canvasHeight
+          const x = ((lng - newMinLng) / (newMaxLng - newMinLng)) * canvasWidth
+          return { x, y }
+        }
+        const points = rawPoints.map(p => {
+          const pos = toCanvas(p.x, p.y)
+          // console.log(`📍 ${p.label}: 原始(${p.x}, ${p.y}) → Canvas(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`)
+          return {
+            x: pos.x,
+            y: pos.y,
+            lat: p.x,
+            lng: p.y,
+            type: p.type,
+            label: p.label,
+          }
+        })
+        // ===== 4. 获取原点位置 =====
+        const origin = rawPoints.find(p => p.type === 'origin')
+        if (!origin) {
+          console.warn('⚠️ 未找到原点')
+          return
+        }
+
+        const originPos = toCanvas(origin.x, origin.y)
+
+
+        // ===== 画灰色网格 =====
+        ctx.setStrokeStyle('rgba(134, 134, 134, 0.34)')
+        ctx.setLineWidth(0.4)
 
         for (let x = 0; x <= canvasWidth; x += 20) {
           ctx.beginPath()
@@ -1686,31 +1782,36 @@ export default function TRailcarStatusPage() {
           ctx.stroke()
         }
 
-        // ===== 2. 画点位 =====
+        // ✅ 用填充，半径大一点
+        ctx.beginPath()
+        ctx.arc(originPos.x, originPos.y, Number((res.detail.taskOriginToleranceM * 500 * zoomFactor)), 0, 2 * Math.PI)
+        ctx.setFillStyle('rgba(34, 197, 94, 0.15)')
+        ctx.fill()
+        ctx.setStrokeStyle('rgba(34, 197, 94, 0.5)')
+        ctx.setLineWidth(0.6)
+        ctx.stroke()
+
+        // =====  画点位 =====
         points.forEach(point => {
           // 画圆点
           if (point.type === 'origin') {
-            ctx.setFillStyle('#22d3ee')   // 青色
+            ctx.setFillStyle('#22d3ee')   // 原点位置22d3ee青色
           } else if (point.type === 'vehicle') {
-            ctx.setFillStyle('#2f10db')   // 蓝色
+            ctx.setFillStyle('#735ee7')   // 机器人位置735ee7
           } else {
             ctx.setFillStyle('#ffffff')   // 默认白色
           }
 
           ctx.beginPath()
-          ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI)
+          ctx.arc(point.x, point.y, 7, 0, 2 * Math.PI)
           ctx.fill()
-
-          // 画文字标注
-          ctx.setFillStyle('#ffffff')
-          ctx.setFontSize(12)
-          ctx.fillText(point.label, point.x + 16, point.y + 4)
         })
 
-        // ===== 3. 最后渲染到画布 =====
-        ctx.draw()
-        // debugger
-
+        // ctx.draw()
+        // 使用回调确保绘制完成
+        ctx.draw(true, () => {
+          // console.log('✅ 绘制完成，可以查看')
+        })
       }).exec()
 
 
@@ -1727,13 +1828,6 @@ export default function TRailcarStatusPage() {
 
 
 
-    // ✅ 调用 async 函数
-    loadData()
-
-    // 设置定时器，每 3 秒请求一次
-    timerRef.current = setInterval(() => {
-      loadData()
-    }, 3000)  // 3000ms = 3秒
 
 
   }, [])  // 空数组 = 只在组件挂载时执行一次
@@ -1823,30 +1917,56 @@ export default function TRailcarStatusPage() {
                 </View>
               )}
               <View className='path-canvas-card'>
-                <View className='legend-item'>
-                  {/* 第一行：标题 */}
-                  <View className="title-row">
-                    <Text className="manual-control-title">点位调整</Text>
-                  </View>
 
-                  {/* 第二行：信息和图标 */}
-                  <View className="info-row">
-                    <Text className="manual-control-title">容错范围：{taskstartToleranceM.toFixed(2)}厘米</Text>
-                    <Text className="manual-control-title">当前距离：{taskdistance.toFixed(2)}厘米 </Text>
-                    {/* <View className='legend-dot origin' /> */}
-                    <View className={`legend-dot ${taskdistance <= taskstartToleranceM ? 'green' : 'red'}`} />
-                  </View>
+
+                <View className="title-row">
+                  <Text className="manual-control-title">点位调整</Text>
                 </View>
+
+                <View className="info-row">
+                  <Text className="manual-control-info">
+                    容错范围：{!isNaN(taskstartToleranceM) && taskstartToleranceM !== undefined
+                      ? (taskstartToleranceM * 100).toFixed(2)
+                      : '0.00'
+                    }厘米
+                  </Text>
+                  <Text className="manual-control-info">
+                    当前距离：{!isNaN(taskdistance) && taskdistance !== undefined
+                      ? (taskdistance * 100).toFixed(2)
+                      : '0.00'
+                    }厘米
+                  </Text>
+
+                </View>
+
+                <View className="msg-row">
+                  {/* <View className={`status-dot ${taskdistance <= taskstartToleranceM ? 'green' : 'red'}`} /> */}
+                  <Text className="manual-control-title"> {taskmsg} </Text>
+                </View>
+
                 <Canvas
                   className='path-canvas'
                   canvasId='path-canvas'
-                  style={{ width: '100%', height: `150px` }}
+                  style={{
+                    width: '100%', height: '150px',
+                    display: 'block',  // 确保显示
+                    // backgroundColor: '#f0f0f0', // 加个背景色看看是否渲染
+                    minHeight: '150px'  // 确保最小高度
+                  }}
                 />
 
-
-
+                {/* ===== 图例（原点/车辆位置） ===== */}
+                <View className='legend-container'>
+                  <View className='legend-item'>
+                    <View className='legend-dot origin' />
+                    <Text className='legend-text'>原点位置</Text>
+                  </View>
+                  <View className='legend-item'>
+                    <View className='legend-dot vehicle' />
+                    <Text className='legend-text'>机器人位置</Text>
+                  </View>
+                </View>
               </View>
-
 
               <View className="console-actions console-actions--primary">
                 {renderCommandButton('start', 'console-action-btn--start')}{/* 启动 */}

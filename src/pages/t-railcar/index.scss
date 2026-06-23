@@ -1807,6 +1807,10 @@ $red-soft: rgba(255, 122, 122, 0.16);
   padding: 24rpx;
   margin-top: 20rpx;
   box-shadow: 0 12rpx 28rpx rgba(2, 6, 23, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
 }
 
 .path-canvas {
@@ -1824,63 +1828,109 @@ $red-soft: rgba(255, 122, 122, 0.16);
   gap: 18rpx 24rpx;
 }
 
-
-// .legend-item {
-//   display: flex;
-//   align-items: center;
-//   // gap: 10rpx;
-
-// }
-.legend-item {
-  display: flex;
-  flex-direction: column; // 纵向排列
-  align-items: flex-start;
-  margin-top: 20rpx;
-}
-
 .title-row {
   display: flex;
-  flex-direction: row;
   align-items: center;
+  justify-content: flex-start;
 }
 
+/* ===== 第二行：信息展示 ===== */
 .info-row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 12rpx;
-  flex-wrap: wrap; // 如果一行放不下，自动换行
+  gap: 26rpx;
+  width: 100%;
 }
 
-// .legend-dot {
-//   width: 38rpx;
-//   height: 28rpx;
-//   border-radius: 4rpx;
-//   // flex-shrink: 0;
-//   margin-left: auto;
+.manual-control-info {
+  font-size: 27px;
+  color: #d1d1d1;
+  margin: 0;
+  // line-height: 1.5;
+}
 
-//   &.origin {
-//     background: #22ee3d;
-//   }
+/* ===== 第三行：状态提示 ===== */
+.msg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 圆点和文字之间的间距 */
+  padding-top: 2px;
+}
 
-// }
-.legend-dot {
-  width: 40rpx;
-  height: 28rpx;
+// ===== 状态点（绿/红） =====
+.status-dot {
+  width: 30rpx;
+  height: 30rpx;
   border-radius: 4rpx;
   flex-shrink: 0;
-  margin-left: auto;
 
   &.green {
-    background-color: #22c55e; // 绿色
+    background-color: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+    /* 微弱的发光效果，提升视觉反馈 */
   }
 
   &.red {
-    background-color: #ef4444; // 红色
+    background-color: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
   }
 }
 
+// ===== Canvas =====
+.path-canvas {
+  width: 100%;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #07111f;
+}
+
+// ===== 图例容器 =====
+.legend-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 24rpx;
+  margin-top: 12rpx;
+  padding: 8rpx 0;
+}
+
+// ===== 图例项 =====
+.legend-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+}
+
+// ===== 图例颜色块 =====
+.legend-dot {
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 4rpx;
+  flex-shrink: 0;
+  border-radius: 50%;
+
+  &.origin {
+    background: #22d3ee;
+  }
+
+  &.vehicle {
+    background: #735ee7;
+  }
+}
+
+// ===== 图例文字 =====
 .legend-text {
-  font-size: 22rpx;
-  color: rgba(226, 232, 240, 0.78);
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+// ===== 标题文字 =====
+.manual-control-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #fff;
 }

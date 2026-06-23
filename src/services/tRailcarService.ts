@@ -165,8 +165,7 @@ export interface TRailcarSaveParamsPayload {
  * 发送T型号小车控制命令（统一接口）
  */
 export const sendCommand = async (
-  commandRequest: TRailcarCommandRequest
-): Promise<TRailcarControlResponse> => {
+  commandRequest: TRailcarCommandRequest): Promise<TRailcarControlResponse> => {
   return await request.post<TRailcarControlResponse>('/api/t-railcar/command', commandRequest)
 }
 
