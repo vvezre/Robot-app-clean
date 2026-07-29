@@ -1,0 +1,790 @@
+// index.scss
+
+
+
+
+
+.map-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f5f6fa;
+    overflow: hidden;
+}
+
+// ===== Tab 切换按钮样式 =====
+.tab-switch {
+    overflow: visible;
+    padding: 10px 20px;
+    // margin-bottom: 20px;
+    display: flex; // ← 启用 flex
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+
+
+.tab-switch__wrapper {
+    position: relative;
+    display: flex;
+    background: #ffffff;
+    border-radius: 35px;
+    padding: 4px;
+    width: 50%;
+    height: 64px;
+    overflow: visible;
+}
+
+// 滑动滑块
+.tab-switch__slider {
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    width: calc(50% - 4px);
+    height: calc(100% - 8px);
+    background: #4ab4f1;
+    border-radius: 32px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    // 滑到右边（连接点）
+    &--right {
+        transform: translateX(100%);
+    }
+}
+
+// 每个选项
+.tab-switch__item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 21px;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s;
+    user-select: none;
+
+    // 点击态反馈
+    &:active {
+        opacity: 0.7;
+    }
+}
+
+.tab-switch__text {
+    font-size: 28px;
+    font-weight: 500;
+    color: #202020;
+    transition: color 0.3s;
+}
+
+// 激活状态的文字颜色
+.tab-switch__item--active .tab-switch__text {
+    color: #333333;
+    font-weight: 600;
+}
+
+// ===== 问号 - 定位在 wrapper 右侧外部 =====
+.tab-switch__help {
+    position: absolute;
+    left: 125%; // ← 负值，让问号出现在右侧外部
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #a89e9e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+
+    &:active {
+        opacity: 0.7;
+        transform: translateY(-50%) scale(0.95);
+    }
+}
+
+.tab-switch__help-icon {
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+}
+
+// ===== 内容区域 =====
+.tab-content {
+    // background: #ffffff00;
+    border-radius: 16px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    flex: 1
+}
+
+.region-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f5f6fa;
+    position: relative;
+    overflow: hidden;
+}
+
+// ===== 区域点内容样式 =====
+.region-point {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px;
+
+    height: auto;
+    flex: 1;
+
+    // ===== 表头 =====
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 12px;
+    }
+
+    &__header-left {
+        display: flex;
+        align-items: center;
+    }
+
+    &__header-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #333333;
+    }
+
+    &__header-clear {
+        padding: 4px 14px;
+        border-radius: 6px;
+        background: #ff4d4f;
+        cursor: pointer;
+        transition: all 0.2s;
+        // 让点击区域更大
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:active {
+            opacity: 0.7;
+            transform: scale(0.96);
+        }
+    }
+
+    &__header-clear-text {
+        font-size: 28px;
+        color: #ffffff;
+        font-weight: 500;
+    }
+
+    // ===== 表格容器 =====
+    // &__scroll {
+    //     height: 200px;
+    //     width: 100%;
+    //     background: #ffffff;
+    //     border-radius: 8px;
+    //     border: 1px solid #f0f2f5;
+    // }
+
+    // // ✅ padding 写在内部容器上
+    // &__scroll-content {
+    //     padding: 12px;
+    //     box-sizing: border-box;
+    // }
+
+    &__table {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+    }
+
+    // ===== 表格行 =====
+    &__row {
+        display: flex;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px 12px;
+        min-height: 64px;
+        width: 100%; // ← 确保撑满
+        box-sizing: border-box;
+
+        &:active {
+            background: #e8e9ea;
+        }
+    }
+
+    // ===== 单元格 =====
+    &__cell {
+        display: flex;
+        align-items: center;
+        // 文字溢出处理
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        // 列1：名称（占 35%）
+        &--name {
+            flex: 0 0 25%;
+            justify-content: flex-start;
+        }
+
+        // 列2：数值（占 40%）
+        &--value {
+            flex: 0 0 50%;
+            justify-content: flex-start;
+        }
+
+        // 列3：删除按钮（占 25%，但使用 flex:1 自动撑满剩余）
+        &--delete {
+            flex: 1;
+
+            justify-content: flex-end;
+        }
+    }
+
+    &__cell-text {
+        font-size: 24px;
+        color: #333333;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // ===== 删除按钮 =====
+    &__delete-btn {
+        font-size: 24px;
+        color: #ff4d4f;
+        padding: 4px 12px;
+        border-radius: 4px;
+        border: 1px solid #ff4d4f;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:active {
+            background: #ff4d4f;
+            color: #ffffff;
+        }
+    }
+
+    // ===== 空状态 =====
+    &__empty {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 0;
+    }
+
+    &__empty-text {
+        font-size: 24px;
+        color: #b0b0b0;
+    }
+}
+
+// ===== 区域2：内容卡片（region-area） =====
+// ============================================================
+.region-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    // background: #f8f9fa;
+    border-radius: 16px;
+    padding: 16px;
+    // border: 1.5px dashed #d0d5dd;
+    min-height: 60px;
+}
+
+// ===== 区域3：控制区域（region-control） =====
+// ============================================================
+// .region-control {
+//     flex: 1;
+//     display: flex;
+//     flex-direction: column;
+//     gap: 8px;
+//     background: #f0f4ff;
+//     border-radius: 16px;
+//     padding: 12px 16px;
+
+
+
+
+// }
+// ===== 区域控制卡片 =====
+.region-control {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    border-radius: 16px;
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+
+    // ===== 左上角文字 =====
+    &__header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 2px;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+
+    &__title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a2332;
+        display: block;
+        text-align: left;
+        width: 100%;
+    }
+
+    &__subtitle {
+        font-size: 24px;
+        font-weight: 400;
+        color: #8c95a6;
+        display: block;
+        text-align: left;
+        width: 100%;
+    }
+
+    // ===== 主体 =====
+    &__body {
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+    }
+
+    // ===== 左侧摇杆 =====
+    &__joystick {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 0px;
+        min-height: 200px;
+
+        .joystick-pad {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            background: rgba(245, 246, 250, 0.8);
+            border-radius: 50%;
+            box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .joystick-btn {
+            position: absolute;
+            width: 105px;
+            height: 105px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+
+            &:active {
+                transform: scale(0.85);
+                background: #4a6cf7;
+
+                .joystick-btn__arrow {
+                    color: #ffffff;
+                }
+            }
+
+            &__arrow {
+                font-size: 45px;
+                color: #4a6cf7;
+                font-weight: 700;
+                pointer-events: none;
+            }
+
+            &__text {
+                font-size: 28px;
+                font-weight: 600;
+                color: #ffffff;
+                pointer-events: none;
+            }
+
+            &--up {
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+
+                &:active {
+                    transform: translateX(-50%) scale(0.85);
+                }
+            }
+
+            &--down {
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+
+                &:active {
+                    transform: translateX(-50%) scale(0.85);
+                }
+            }
+
+            &--left {
+                left: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+
+                &:active {
+                    transform: translateY(-50%) scale(0.85);
+                }
+            }
+
+            &--right {
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+
+                &:active {
+                    transform: translateY(-50%) scale(0.85);
+                }
+            }
+
+            &--center {
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 105px;
+                height: 105px;
+                background: #4a6cf7;
+                box-shadow: 0 2px 12px rgba(74, 108, 247, 0.3);
+
+                &:active {
+                    background: #3a5cd7;
+                    transform: translate(-50%, -50%) scale(0.85);
+                }
+
+                .joystick-btn__text {
+                    color: #ffffff;
+                }
+            }
+        }
+
+        .joystick-labels {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+
+            .joystick-label {
+                font-size: 12px;
+                color: #8c95a6;
+                padding: 2px 10px;
+                background: rgba(245, 246, 250, 0.6);
+                border-radius: 10px;
+            }
+        }
+    }
+
+    // ===== 右侧按钮 =====
+    &__action {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 0 8px;
+
+        .action-btn {
+            width: 180px;
+            height: 72px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4a6cf7, #6c8cff);
+            box-shadow: 0 4px 16px rgba(74, 108, 247, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+
+            &:active {
+                transform: scale(0.92);
+                opacity: 0.85;
+            }
+
+            &__text {
+                font-size: 26px;
+                font-weight: 600;
+                color: #ffffff;
+                letter-spacing: 2px;
+            }
+
+            &--orange {
+                background: linear-gradient(135deg, #f77b4a, #ffa26c);
+                box-shadow: 0 4px 16px rgba(247, 152, 74, 0.4);
+            }
+        }
+
+        .action-btn2 {
+            width: 180px;
+            height: 72px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #f77b4a, #ffa26c);
+            box-shadow: 0 4px 16px rgba(247, 152, 74, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+
+            &:active {
+                transform: scale(0.92);
+                opacity: 0.85;
+            }
+
+            &__text {
+                font-size: 24px;
+                font-weight: 600;
+                color: #ffffff;
+                letter-spacing: 2px;
+            }
+        }
+    }
+}
+
+// ===== 底部固定卡片 =====
+// ============================================================
+
+.map-page__footer {
+    flex-shrink: 0;
+    // background: #f5f6fa;
+    padding: 5px 16px 36px;
+}
+
+.map-page__footer-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.map-page__footer-btn {
+    flex: 1;
+    height: 58px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:active {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+
+    &--undo {
+        background: #ffffff;
+        border: 1.5px solid #d9d9d9;
+
+        .map-page__footer-btn-text {
+            color: #666666;
+        }
+    }
+
+    &--complete {
+        background: #4a6cf7;
+        border: 1.5px solid #4a6cf7;
+
+        .map-page__footer-btn-text {
+            color: #ffffff;
+        }
+    }
+}
+
+.map-page__footer-btn-text {
+    font-size: 28px;
+    font-weight: 500;
+}
+
+.manual-control-panel {
+    margin-top: 18rpx;
+    padding: 20rpx;
+    border-radius: 22rpx;
+
+
+}
+
+// ===== 引导层样式 =====
+.guide-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.guide-mask {
+    display: none;
+}
+
+.guide-highlight {
+    position: absolute;
+    background: transparent;
+    border: 3px solid #4a6cf7;
+    border-radius: 35px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+    pointer-events: auto;
+    z-index: 2;
+}
+
+.guide-highlight--tabs {
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    height: 66px;
+    border-radius: 35px;
+}
+
+.guide-highlight--control {
+    top: calc(100px + 450px + 40px);
+    left: 10px;
+    right: 10px;
+    bottom: 30px;
+    border-radius: 16px;
+}
+
+.guide-bubble {
+    position: absolute;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    pointer-events: auto;
+    z-index: 3;
+    max-width: 80%;
+}
+
+.guide-bubble--step1 {
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.guide-bubble--step2 {
+    top: 45%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.guide-bubble__arrow {
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 12px solid #ffffff;
+}
+
+.guide-bubble__arrow--top {
+    top: -12px;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 12px solid #ffffff;
+}
+
+.guide-bubble__content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.guide-bubble__title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #4a6cf7;
+}
+
+.guide-bubble__text {
+    font-size: 24px;
+    color: #333333;
+    line-height: 1.5;
+}
+
+.guide-bubble__next {
+    margin-top: 10px;
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #4a6cf7, #6c8cff);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.guide-bubble__next-text {
+    font-size: 24px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.guide-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    z-index: 3;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.guide-close__icon {
+    font-size: 32px;
+    color: #666666;
+    line-height: 1;
+}
+
+.guide-target {
+    animation: guide-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes guide-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(74, 108, 247, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 12px rgba(74, 108, 247, 0);
+    }
+}

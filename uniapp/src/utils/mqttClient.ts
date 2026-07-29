@@ -41,16 +41,16 @@ export class MQTTClient {
   private client: MqttClientType | null = null
   private config: MQTTConfig
   private isConnected: boolean = false
-  private reconnectTimer: NodeJS.Timeout | null = null
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectAttempts: number = 0
   private maxReconnectAttempts: number = 5
   
   // 心跳机制
-  private heartbeatTimer: NodeJS.Timeout | null = null
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null = null
   private heartbeatInterval: number = 30000 // 30秒发送一次心跳
   private lastHeartbeatTime: number = 0
   private heartbeatTimeout: number = 60000 // 60秒未收到心跳则认为离线
-  private heartbeatCheckTimer: NodeJS.Timeout | null = null
+  private heartbeatCheckTimer: ReturnType<typeof setTimeout> | null = null
 
   // 事件回调
   public onConnect: MQTTConnectCallback | null = null
@@ -84,7 +84,7 @@ export class MQTTClient {
       }
       
       // 设置连接超时
-      let timeoutTimer: NodeJS.Timeout | null = null
+      let timeoutTimer: ReturnType<typeof setTimeout> | null = null
       let isResolved = false
       
       const resolveOnce = () => {

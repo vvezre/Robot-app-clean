@@ -3,6 +3,7 @@
  * 从后端获取真实设备列表
  */
 
+import Taro from '@tarojs/taro'
 import request from '../utils/request'
 
 
@@ -162,6 +163,43 @@ interface DeviceInfoResponse {
 }
 
 class VehicleService {
+
+  //serialNumber -T01250002
+  private currentSerialNumber: string | null = null
+
+  public setCurrentSerialNumber(serialNumber: string) {
+
+    this.currentSerialNumber = serialNumber
+    Taro.setStorageSync('currentSerialNumber', serialNumber)
+    // console.log('[DeviceService] 保存 serialNumber:', serialNumber)
+  }
+
+  public getCurrentSerialNumber(): string | null {
+    if (!this.currentSerialNumber) {
+      this.currentSerialNumber = Taro.getStorageSync('currentSerialNumber') || null
+    }
+    console.log('[DeviceService] 获取 serialNumber:', this.currentSerialNumber)
+    return this.currentSerialNumber
+  }
+
+  //productId 250001
+  private currentProductId: string | null = null
+
+  public setCurrentProductId(productId: string) {
+
+    this.currentProductId = productId
+    Taro.setStorageSync('currentProductId', productId)
+    // console.log('[DeviceService] 保存 productId:', productId)
+  }
+  public getCurrentProductId(): string | null {
+    if (!this.currentProductId) {
+      this.currentProductId = Taro.getStorageSync('currentProductId') || null
+    }
+    console.log('[DeviceService] 获取 productId:', this.currentProductId)
+    return this.currentProductId
+  }
+
+
   private buildDeviceStatusSummary(device: Partial<MiniAppRobotResponse>) {
     return {
       id: device.id,
@@ -265,14 +303,14 @@ class VehicleService {
    */
   async getAllVehicles(): Promise<MiniAppRobotResponse[]> {
     try {
-      console.log('[VehicleService] ========== 开始获取设备列表 ==========')
+      // console.log('[VehicleService] ========== 开始获取设备列表 ==========')
 
       const response = await request.get<MiniAppRobotResponse[]>('/api/mini-app/devices')
 
-      console.log(`[VehicleService] ✅ 获取到 ${response.length} 个设备`)
+      // console.log(`[VehicleService] ✅ 获取到 ${response.length} 个设备`)
 
       response.forEach((device, index) => {
-        console.log(`[VehicleService] 设备 ${index + 1} 状态摘要:`, this.buildDeviceStatusSummary(device))
+        // console.log(`[VehicleService] 设备 ${index + 1} 状态摘要:`, this.buildDeviceStatusSummary(device))
       })
 
       return response
@@ -288,12 +326,12 @@ class VehicleService {
    */
   async getVehicleById(id: number): Promise<MiniAppRobotResponse> {
     try {
-      console.log(`[VehicleService] 获取设备详情 - ID: ${id}`)
+      // console.log(`[VehicleService] 获取设备详情 - ID: ${id}`)
 
       const response = await request.get<MiniAppRobotResponse>(`/api/mini-app/devices/${id}`)
 
-      console.log('[VehicleService] ✅ 获取设备详情成功')
-      console.log('[VehicleService] 设备详情:', response)
+      // console.log('[VehicleService] ✅ 获取设备详情成功')
+      // console.log('[VehicleService] 设备详情:', response)
 
       return response
 
@@ -308,11 +346,11 @@ class VehicleService {
    */
   async getDeviceShadowById(id: number): Promise<DeviceShadowStatus> {
     try {
-      console.log(`[VehicleService] 获取设备标准状态 - ID: ${id}`)
+      // console.log(`[VehicleService] 获取设备标准状态 - ID: ${id}`)
 
       return await request.get<DeviceShadowStatus>(`/api/mini-app/devices/${id}/shadow`)
     } catch (error: any) {
-      console.error('[VehicleService] ❌ 获取设备标准状态失败:', error)
+      // console.error('[VehicleService] ❌ 获取设备标准状态失败:', error)
       throw error
     }
   }
@@ -347,7 +385,7 @@ class VehicleService {
    * 转换为前端使用的 Robot 格式
    */
   convertToRobot(device: MiniAppRobotResponse): any {
-    console.log(`[VehicleService] 转换设备 ${device.deviceId} 为 Robot 格式`)
+    // console.log(`[VehicleService] 转换设备 ${device.deviceId} 为 Robot 格式`)
 
     const normalizedOnlineState = (device.onlineState || '').toUpperCase()
     const normalizedStatus = normalizedOnlineState === 'OFFLINE'
@@ -436,16 +474,16 @@ class VehicleService {
       shadowDetail: device.shadowDetail ?? null,
     }
 
-    console.log('[VehicleService] ✅ 转换完成:', {
-      deviceId: robot.productType && robot.productId ? `${robot.productType}${robot.productId}` : null,
-      status: robot.status,
-      battery: robot.battery,
-      onlineState: robot.onlineState,
-      missionState: robot.missionState,
-      controlState: robot.controlState,
-      lastCommandId: robot.lastCommandId,
-      lastCommandStatus: robot.lastCommandStatus,
-    })
+    // console.log('[VehicleService] ✅ 转换完成:', {
+    //   deviceId: robot.productType && robot.productId ? `${robot.productType}${robot.productId}` : null,
+    //   status: robot.status,
+    //   battery: robot.battery,
+    //   onlineState: robot.onlineState,
+    //   missionState: robot.missionState,
+    //   controlState: robot.controlState,
+    //   lastCommandId: robot.lastCommandId,
+    //   lastCommandStatus: robot.lastCommandStatus,
+    // })
 
     return robot
   }

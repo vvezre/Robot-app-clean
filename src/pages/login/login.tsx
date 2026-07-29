@@ -31,7 +31,8 @@ export default class Login extends Component<{}, LoginState> {
 
   componentDidShow() {
     if (authService.isAuthenticated()) {
-      Taro.reLaunch({ url: '/pages/index/index' })
+      // Taro.reLaunch({ url: '/pages/index/index' })
+      Taro.reLaunch({ url: '/pages/home/home' })
     }
   }
 
@@ -80,13 +81,15 @@ export default class Login extends Component<{}, LoginState> {
         storage.setUserInfo(mockUserInfo)
         storage.setLastCredentials(username, password)
 
-        Taro.reLaunch({ url: '/pages/index/index' })
+        // Taro.reLaunch({ url: '/pages/index/index' })
+        Taro.reLaunch({ url: '/pages/home/home' })
         return
       }
 
       await authService.login(username, password)
       storage.setLastCredentials(username, password)
-      Taro.reLaunch({ url: '/pages/index/index' })
+      // Taro.reLaunch({ url: '/pages/index/index' })
+      Taro.reLaunch({ url: '/pages/home/home' })
     } catch (error: any) {
       this.setState({
         errorMessage: error.message || '登录失败，请检查用户名和密码',

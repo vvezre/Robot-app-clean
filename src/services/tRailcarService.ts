@@ -161,6 +161,28 @@ export interface TRailcarSaveParamsPayload {
   originHeading: number
 }
 
+export interface ModelingPoint {
+  id: string
+  name: string
+  sequence: number
+  x: number
+  y: number
+  lat: number
+  lon: number
+}
+
+export interface ModelingPointsResponse {
+  points: ModelingPoint[]
+
+}
+export interface ALLModelingPointsResponse {
+
+  areaPoints: ModelingPoint[]
+  linkPoints: ModelingPoint[]
+  pathPoints: ModelingPoint[]
+
+
+}
 /**
  * 发送T型号小车控制命令（统一接口）
  */
@@ -216,7 +238,8 @@ export const tRailcarMovement = {
     return await sendCommand({
       productId,
       command: 'turn_left',
-      params: { angle },
+      params: { "angle": angle }
+      // params: { angle },
     })
   },
 
@@ -229,7 +252,8 @@ export const tRailcarMovement = {
     return await sendCommand({
       productId,
       command: 'turn_right',
-      params: { angle },
+      // params: { angle },
+      params: { "angle": angle }
     })
   },
 
@@ -254,6 +278,130 @@ export const tRailcarMovement = {
       command: 'parking',
     })
   },
+
+  /**
+   * 记录区域点
+   * @param productId 产品ID
+   */
+  sample_modeling_point: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'sample_modeling_point',
+    })
+  },
+
+
+
+  /**
+   * 记录连接点
+   * @param productId 产品ID
+   */
+  sample_modeling_link_point: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'sample_modeling_link_point',
+    })
+  },
+  /**
+   * 删除连接点
+   * @param productId 产品ID
+   */
+  delete_modeling_point: async (productId: string, id: string) => {
+    return await sendCommand({
+      productId,
+      command: 'delete_modeling_point',
+      params: { "id": id }
+    })
+  },
+  /**
+   * 删除连接点
+   * @param productId 产品ID
+   */
+  delete_link_point: async (productId: string, id: string) => {
+    return await sendCommand({
+      productId,
+      command: 'delete_modeling_link_point',
+      params: { "id": id }
+    })
+  },
+  /**
+  * 确认开始建模
+  * @param productId 产品ID
+  */
+  finish_modeling: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'finish_modeling',
+      params: {}
+    })
+  },
+  /**
+    * 保存路径名称
+    * @param productId 产品ID
+    */
+  save_modeling_task: async (productId: string, name: string) => {
+    return await sendCommand({
+      productId,
+      command: 'save_modeling_task',
+      params: { "taskName": name }
+    })
+  },
+
+
+
+  /**
+   * 清空当前区域点
+   * @param productId 产品ID
+   */
+  clear_area_point: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'clear_modeling_area_points',
+      params: {}
+    })
+  },
+
+
+
+  /**
+   * 清空当前连接点
+   * @param productId 产品ID
+   */
+  clear_link_point: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'clear_modeling_link_points',
+      params: {}
+    })
+  },
+  // /**
+  //  * 撤销区域点
+  //  * @param productId 产品ID
+  //  */
+  // undo_area_point: async (productId: string) => {
+  //   return await sendCommand({
+  //     productId,
+  //     command: 'undo_modeling_point',
+  //     params: { "pointType": "area" }
+  //   })
+  // },
+
+
+
+  // /**
+  //  * 撤销连接点
+  //  * @param productId 产品ID
+  //  */
+  // undo_link_point: async (productId: string) => {
+  //   return await sendCommand({
+  //     productId,
+  //     command: 'undo_modeling_point',
+  //     params: { "pointType": "link" }
+  //   })
+  // },
+
+
+
 }
 
 /**
@@ -426,18 +574,23 @@ export const tRailcarTask = {
   },
 
   /**
-   * 保存任务
-   * @param productId 产品ID
-   * @param taskName 任务名称
-   */
-  saveTask: async (productId: string, taskName: string) => {
-    return await sendCommand({
-      productId,
-      command: 'save_task',
-      params: { taskName },
-    })
-  },
-
+  //  * 保存任务
+  //  * @param productId 产品ID
+  //  * @param taskName 任务名称
+  //  */
+  // saveTask: async (productId: string, taskName: string) => {
+  //   return await sendCommand({
+  //     productId,
+  //     command: 'save_task',
+  //     params: { taskName },
+  //   })
+  // },
+  // saveTask: async (productId: string, taskName: string): Promise<TRailcarSetCurrentTaskResponse> => {
+  //   return await request.post<TRailcarSetCurrentTaskResponse>('/api/t-railcar/modeling-task/save', {
+  //     productId,
+  //     taskName,
+  //   })
+  // },
   getTaskPath: async (productId: string) => {
     return await sendCommand({
       productId,
@@ -449,7 +602,7 @@ export const tRailcarTask = {
     return await request.get<TRailcarTaskPathResponse>(`/api/t-railcar/task-path/${productId}`)
   },
 
-  fetchTaskOptions: async (productId: string): Promise<TRailcarTaskOptionsResponse> => {
+  fetchTaskOptions: async (productId: string): Promise<TRailcarTaskOptionsPayload | null> => {
     return await request.get<TRailcarTaskOptionsResponse>(`/api/t-railcar/tasks/${productId}`)
   },
 
@@ -513,6 +666,35 @@ export const tRailcarStatus = {
   },
 }
 
+/**
+ * 建模点查询接口
+ */
+export const tRailcarModeling = {
+  /**
+   * 查询区域点列表
+   * @param productId 产品ID
+   */
+  getModelingPoints: async (productId: string): Promise<ModelingPointsResponse> => {
+    return await request.get<ModelingPointsResponse>(`/api/t-railcar/modeling-points/${productId}`)
+  },
+
+  /**
+   * 查询连接点列表
+   * @param productId 产品ID
+   */
+  getLinkingPoints: async (productId: string): Promise<ModelingPointsResponse> => {
+    return await request.get<ModelingPointsResponse>(`/api/t-railcar/modeling-link-points/${productId}`)
+  },
+
+  /**
+   * 规划清扫路径列表
+   * @param productId 产品ID
+   */
+  planCleaningPath: async (productId: string): Promise<ALLModelingPointsResponse> => {
+    return await request.get(`/api/t-railcar/modeling-result/${productId}`)
+  },
+}
+
 // 默认导出
 export default {
   sendCommand,
@@ -523,4 +705,5 @@ export default {
   task: tRailcarTask,
   config: tRailcarConfig,
   status: tRailcarStatus,
+  modeling: tRailcarModeling,
 }

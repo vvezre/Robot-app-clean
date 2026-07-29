@@ -1751,6 +1751,7 @@ export default function Index() {
                       <View className="robot-device-pane">
                         <RobotModel size="mini" family={getRobotFamily(robot)} />
                         <Text className="robot-id">{robot.productId}</Text>
+
                         <Text className="robot-type">{getProductTypeLabel(robot.productType)}</Text>
                         <View className="robot-online-row">
                           <View className={`status-dot ${isRobotOnline(robot) ? (robot.status === 'running' ? 'status-dot-amber' : 'status-dot-green') : 'status-dot-gray'}`} />
@@ -1767,6 +1768,7 @@ export default function Index() {
                             <Text className="robot-metric-value robot-metric-value--blue">{getStatusLabel(robot.status)}</Text>
                           </View>
                           <View className="robot-metric-icon">↻</View>
+
                         </View>
                         <View className="robot-metric-card robot-metric-card--battery">
                           <View>
@@ -3434,9 +3436,9 @@ export default function Index() {
       <View className="modal-content" onClick={(e) => e.stopPropagation()}>
         <View className="modal-header">
           <Text className="modal-title">帮助中心</Text>
-          <Button className="modal-close" onClick={() => setShowHelpModal(false)}>
+          {/* <Button className="modal-close" onClick={() => setShowHelpModal(false)}>
             <Text className="modal-close-text">×</Text>
-          </Button>
+          </Button> */}
         </View>
         <ScrollView className="modal-body" scrollY={true}>
           <View className="help-section">
@@ -3521,9 +3523,9 @@ export default function Index() {
       <View className="modal-content" onClick={(e) => e.stopPropagation()}>
         <View className="modal-header">
           <Text className="modal-title">关于我们</Text>
-          <Button className="modal-close" onClick={() => setShowAboutModal(false)}>
+          {/* <Button className="modal-close" onClick={() => setShowAboutModal(false)}>
             <Text className="modal-close-text">×</Text>
-          </Button>
+          </Button> */}
         </View>
         <ScrollView className="modal-body" scrollY={true}>
           <View className="about-section">

@@ -1,0 +1,137 @@
+.route-name-page {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 140px;
+
+  &__header {
+    padding: 40px 32px 32px;
+    text-align: center;
+  }
+
+  &__title {
+    font-size: 40px;
+    font-weight: 600;
+    color: #1a1a2e;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  &__subtitle {
+    font-size: 26px;
+    color: #999999;
+    display: block;
+  }
+
+  &__form {
+    padding: 0 32px;
+  }
+
+  &__input-wrapper {
+    position: relative;
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 32px;
+    border: 2px solid #e8e8e8;
+    transition: all 0.2s ease;
+
+    &:focus-within {
+      border-color: #4a6cf7;
+      background: #ffffff;
+    }
+  }
+
+  &__label {
+    font-size: 28px;
+    font-weight: 500;
+    color: #333333;
+    display: block;
+    margin-bottom: 20px;
+  }
+
+  &__input {
+    width: 100%;
+    height: 80px;
+    font-size: 32px;
+    color: #1a1a2e;
+    background: transparent;
+    border: none;
+    outline: none;
+  }
+
+  &__count {
+    position: absolute;
+    right: 32px;
+    bottom: 32px;
+    font-size: 24px;
+    color: #cccccc;
+  }
+
+  &__tips {
+    margin-top: 40px;
+    padding: 24px 32px;
+    background: #f8f9fa;
+    border-radius: 12px;
+  }
+
+  &__tips-title {
+    font-size: 26px;
+    font-weight: 500;
+    color: #666666;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  &__tips-item {
+    font-size: 24px;
+    color: #999999;
+    display: block;
+    line-height: 1.8;
+  }
+
+  &__footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 32px;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+    background: #ffffff;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  }
+
+  &__btn {
+    width: 100%;
+    height: 96px;
+    border-radius: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &--confirm {
+      background: linear-gradient(135deg, #4a6cf7, #6c8cff);
+      box-shadow: 0 8px 24px rgba(74, 108, 247, 0.3);
+    }
+
+    &--disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    &:active:not(&--disabled) {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+  }
+
+  &__btn-text {
+    font-size: 34px;
+    font-weight: 500;
+    color: #ffffff;
+    letter-spacing: 4px;
+  }
+}

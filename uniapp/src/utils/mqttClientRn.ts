@@ -25,12 +25,12 @@ class MQTTClientRN {
   private config: MQTTConfig
   private socketTask: Taro.SocketTask | null = null
   private isConnected: boolean = false
-  private reconnectTimer: NodeJS.Timeout | null = null
-  private heartbeatTimer: NodeJS.Timeout | null = null
-  private heartbeatTimeoutTimer: NodeJS.Timeout | null = null
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null = null
+  private heartbeatTimeoutTimer: ReturnType<typeof setTimeout> | null = null
   private subscriptions: Map<string, number> = new Map() // topic -> qos
   private messageHandlers: Map<string, (topic: string, message: string | Buffer) => void> = new Map()
-  private connectTimeout: NodeJS.Timeout | null = null
+  private connectTimeout: ReturnType<typeof setTimeout> | null = null
   private lastHeartbeatTime: number = 0
   private readonly HEARTBEAT_INTERVAL = 30000 // 30秒
   private readonly HEARTBEAT_TIMEOUT = 60000 // 60秒超时

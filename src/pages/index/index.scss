@@ -3907,8 +3907,8 @@ $sky-600: $cyan-500;
 }
 
 .modal-close {
-  width: 64rpx;
-  height: 64rpx;
+  width: 24rpx;
+  height: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3933,6 +3933,7 @@ $sky-600: $cyan-500;
 
 .modal-body {
   padding: 40rpx 32rpx;
+
 }
 
 .modal-submit-btn {

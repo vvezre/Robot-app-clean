@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas, Button, Input, ScrollView, Text, View } from '@tarojs/components'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { Canvas, Button, Input, ScrollView, Text, View, Slider } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import PathCanvas from '../../components/PathCanvas'
 import RobotModel from '../../components/RobotModel'
@@ -31,7 +31,7 @@ type CurrentPoint = {
 }
 
 type RealtimeSnapshot = Partial<WebSocketMessage>
-type ConsoleTab = 'control' | 'status' | 'task'
+type ConsoleTab = 'control' | 'status' | 'task' | 'test'
 type CommandAction = 'start' | 'stop' | 'forward' | 'backward' | 'turnLeft' | 'turnRight'
 type TouchPoint = { x: number; y: number }
 type TaskGeoPoint = { lat: number; lon: number; heading?: number }
@@ -458,12 +458,28 @@ const parseIntegerList = (value: string, fieldName: string) => value
   .filter(Boolean)
   .map(item => parseInteger(item, fieldName))
 
+interface CanvasParams {
+  currentHeading?: number;
+  currentLat?: number;
+  currentLon?: number;
+  originHeading?: number;
+  taskStartLat?: number;
+  taskStartLon?: number;
+  taskdistance?: number;
+  taskstartToleranceM?: number;
+}
 export default function TRailcarStatusPage() {
   const [taskdistance, setTaskdistance] = useState(0)
   const [taskstartToleranceM, setTaskStartToleranceM] = useState(0)
-  // const [taskproductId, setTaskProductId] = useState('')
+
+  const [canvasParams, setCanvasParams] = useState<CanvasParams>({});
+
+
   const [taskProductId, setTaskProductId] = useState<string>('')
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const CANVAS_WIDTH = 375
+  const CANVAS_HEIGHT = 150
+  const isActivecontrol = useRef(true)     // 标记是否活跃
   const [taskmsg, setTaskmsg] = useState<string>('⏳正在获取定位信息...')
   const [activeTab, setActiveTab] = useState<ConsoleTab>('control')
   const [productId, setProductId] = useState('250001')
@@ -504,26 +520,57 @@ export default function TRailcarStatusPage() {
 
     }
   }, [])
-  // 监听 taskProductId，启动轮询
-  useEffect(() => {
-    console.log('taskProductId 变化了:', taskProductId)  // 看这里有没有输出
 
-    if (!taskProductId) return
 
-    // 清空旧定时器
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-    }
 
-    loadData()
-    timerRef.current = setInterval(loadData, 3000)
 
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-      }
-    }
-  }, [taskProductId])
+  // // 监听 taskProductId，启动轮询
+  // useEffect(() => {
+  //   console.log('taskProductId 变化了:', taskProductId)  // 看这里有没有输出
+
+  //   if (!taskProductId) return
+
+  //   // 清空旧定时器
+  //   if (timerRef.current) {
+  //     clearInterval(timerRef.current)
+  //     clearTimeout(timerRef.current);
+  //     // ✅ 清空画布，防止残留
+  //     const ctx = Taro.createCanvasContext('point-canvas');
+  //     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  //     ctx.draw(true);
+  //   }
+
+  //   loadData()
+  //   if (isActivecontrol) {
+  //     timerRef.current = setInterval(loadData, 3000)
+  //   }
+  //   return () => {
+  //     if (timerRef.current) {
+  //       clearInterval(timerRef.current)
+
+  //       // ✅ 清空画布，防止残留
+  //       const ctx = Taro.createCanvasContext('point-canvas');
+  //       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  //       ctx.draw(true);
+  //     }
+  //   }
+  // }, [taskProductId])
+
+  // useEffect(() => {
+  //   return () => {
+  //     if (timerRef.current) {
+  //       // ✅ 清空画布，防止残留
+  //       const ctx = Taro.createCanvasContext('point-canvas');
+  //       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  //       ctx.draw(true);
+  //       clearTimeout(timerRef.current);
+  //     }
+  //   };
+  // }, []);
+
+
+
+
   useEffect(() => {
     taskPathRef.current = taskPath
   }, [taskPath])
@@ -835,16 +882,33 @@ export default function TRailcarStatusPage() {
     setJoystickActive(false)
     setJoystickVector(JOYSTICK_CENTER)
     void sendJoystickPayload(JOYSTICK_STOP_PAYLOAD, true)
+
   }
 
   const switchConsoleTab = (tab: ConsoleTab) => {
     if (tab !== 'control' && joystickActive) {
       resetJoystick()
+
     }
     if (tab === 'task' && activeTab !== 'task') {
       void loadTaskOptions(false)
     }
+    if (tab !== 'control') {
+      isActivecontrol.current = false
+      // // ✅ 清空画布，防止残留
+      // const ctx = Taro.createCanvasContext('point-canvas');
+      // ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      // ctx.draw(true);
+
+    } else if (tab === 'control') {
+      console.log('在控制页面了')
+      isActivecontrol.current = true
+
+    }
     setActiveTab(tab)
+
+
+
   }
 
   const updateTaskParam = (key: keyof TaskParamsForm, value: string) => {
@@ -1316,8 +1380,7 @@ export default function TRailcarStatusPage() {
       meta: 'local_x / local_y',
     },
   ]), [
-    rawStatus,
-    reportedSpeed,
+
     snapshot.action,
     snapshot.brushSpeed,
     snapshot.controlState,
@@ -1660,182 +1723,1100 @@ export default function TRailcarStatusPage() {
       ) : null}
     </View>
   )
+
+
+
   const loadData = async () => {
-    // taskProductId 变化了: -T01250002
-    try {
-      const res = await deviceStatusService.getDeviceShadow(taskProductId)
-      // console.log('id接口返回:', taskProductId)
-      // console.log('getDeviceShadow接口返回:', res)
-      setTaskdistance(res.detail.distanceToTaskOriginM)
-      setTaskStartToleranceM(res.detail.taskOriginToleranceM)
 
-      const rawPoints = [
-        {
-          x: res.detail.taskStartLat,
-          y: res.detail.taskStartLon,
-          type: 'origin',
-          label: '原点位置'
-        },
-        {
-          x: res.detail.currentLat,
-          y: res.detail.currentLon,
-          type: 'vehicle',
-          label: '机器人位置'
-        },
-      ].filter(p => p.x != null && p.y != null)  // 过滤掉空值
 
-      console.log('原始点位:', rawPoints)
-      // ===== 2. 检查数据有效性 =====
-      if (rawPoints.length === 0) {
-        setTaskmsg('❌ 无点位数据,请检查传感器或定位信号')
-      } else if (rawPoints.length > 0) {
-        const distanceCm = Number((res.detail.distanceToTaskOriginM * 100).toFixed(2));
-        const toleranceCm = Number((res.detail.taskOriginToleranceM * 100).toFixed(2));
-        console.log(" 容错范围", toleranceCm,
-          ' 当前距离:', distanceCm
-        )  // ✅ 读取全局变量
+    if (activeTab !== 'control') {
+      console.log('当前不在控制页面，跳过绘制')
+      return
+    } else {
+      if (!isActivecontrol.current) {
+        return
+      } else {
+        let rawPoints = [];
 
-        if (distanceCm <= toleranceCm) {
-          setTaskmsg('✅ 点位已对齐,可以启动')
-        } else {
-          setTaskmsg('⚠️ 点位未对齐,请调整位置')
+        try {
+          rawPoints.length = 0;
+          const res = await deviceStatusService.getDeviceShadow(taskProductId)
+          console.log('-------', res)
+          setTaskdistance(res.detail.distanceToTaskOriginM)
+          setTaskStartToleranceM(res.detail.taskOriginToleranceM)
+          const distanceCm = Number((res.detail.distanceToTaskOriginM * 100).toFixed(2));
+          const toleranceCm = Number((res.detail.taskOriginToleranceM * 100).toFixed(2));
+
+          const newParams = {
+            currentHeading: res.detail.currentHeading || 0,
+            currentLat: res.detail.currentLat || 0,
+            currentLon: res.detail.currentLon || 0,
+            originHeading: res.detail.originHeading || 0,
+            taskStartLat: res.detail.taskStartLat || 0,
+            taskStartLon: res.detail.taskStartLon || 0,
+            taskdistance: distanceCm,
+            taskstartToleranceM: toleranceCm,
+          };
+
+          setCanvasParams(newParams);
+
+          console.log('-------', res.detail.taskStartLat)
+          if (res.detail.taskStartLat == undefined) {
+            // ✅ 清空画布，防止残留
+            const ctx = Taro.createCanvasContext('point-canvas');
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.draw(true);
+          } else {
+            // ✅ 准备并过滤新数据
+            const newPoints = [
+              {
+                x: res.detail.taskStartLat,
+                y: res.detail.taskStartLon,
+                heading: res.detail.originHeading || 0,
+                lat: res.detail.taskStartLat,
+                lon: res.detail.taskStartLon,
+                type: 'origin',
+                label: '原点位置'
+              },
+              {
+                x: res.detail.currentLat,
+                y: res.detail.currentLon,
+                heading: res.detail.currentHeading || 0,
+                lat: res.detail.currentLat,
+                lon: res.detail.currentLon,
+                type: 'vehicle',
+                label: '机器人位置'
+              }
+            ].filter(p => {
+              // 过滤条件：x和y都存在，且不为0
+              return p.x != null && p.y != null && p.x !== 0 && p.y !== 0;
+            });
+
+            // ✅ 添加有效数据
+            rawPoints.push(...newPoints);
+
+
+            if (rawPoints.length === 0) {
+              setTaskmsg('❌ 无点位数据,请检查传感器或定位信号')
+            } else if (rawPoints.length > 0) {
+
+              console.log(" 容错范围", toleranceCm,
+                ' 当前距离:', distanceCm
+              )  // ✅ 读取全局变量
+
+              if (distanceCm <= toleranceCm) {
+                setTaskmsg('✅ 点位已对齐,可以启动')
+              } else {
+                setTaskmsg('⚠️ 点位未对齐,请调整位置')
+              }
+            }
+
+            const canvasWidth = CANVAS_WIDTH
+            const canvasHeight = CANVAS_HEIGHT
+
+            const ctx = Taro.createCanvasContext('point-canvas')
+
+            const query = Taro.createSelectorQuery()
+
+
+            // 不管有没有 class，用 #id 一定能找到
+            query.select('#point-canvas').boundingClientRect((rect: any) => {
+              if (!rect) {
+                console.warn('元素未找到')
+                return
+              }
+              // console.log('✅ 找到了:', rect)
+              // })
+
+
+              // console.log('📍', rawPoints)
+              // ====== 开始绘制 ======
+
+              ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+              ctx.setFillStyle('rgba(7, 17, 31, 1)')
+              ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+              const lats = rawPoints.map(p => p.x)  // 纬度
+              const lngs = rawPoints.map(p => p.y)  // 经度
+              const MIN_RANGE = 0.0001  // 约 11.1 米
+              const minLat = Math.min(...lats)
+              const maxLat = Math.max(...lats)
+              const minLng = Math.min(...lngs)
+              const maxLng = Math.max(...lngs)
+              const latRange = Math.max(maxLat - minLat, MIN_RANGE)
+              const lngRange = Math.max(maxLng - minLng, MIN_RANGE)
+
+              let zoomFactor = 600 / (distanceCm + 40)
+
+              // 限制范围
+              zoomFactor = Math.max(zoomFactor, 0.05)   // 最小 0.5 倍
+              zoomFactor = Math.min(zoomFactor, 25)    // 最大 15 倍
+
+              console.log(`🔍 缩放倍数: ${zoomFactor.toFixed(2)}x`)
+
+              const centerLat = (minLat + maxLat) / 2
+              const centerLng = (minLng + maxLng) / 2
+
+              const zoomedLatRange = latRange / zoomFactor
+              const zoomedLngRange = lngRange / zoomFactor
+
+              const newMinLat = centerLat - zoomedLatRange / 2
+              const newMaxLat = centerLat + zoomedLatRange / 2
+              const newMinLng = centerLng - zoomedLngRange / 2
+              const newMaxLng = centerLng + zoomedLngRange / 2
+
+              function toCanvas(lat, lng) {
+                const y = ((newMaxLat - lat) / (newMaxLat - newMinLat)) * canvasHeight
+                const x = ((lng - newMinLng) / (newMaxLng - newMinLng)) * canvasWidth
+                return { x, y }
+              }
+
+              const points = rawPoints.map(p => {
+                const pos = toCanvas(p.x, p.y)
+                // console.log(`📍 ${p.label}: 原始(${p.x}, ${p.y}) → Canvas(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`)
+                return {
+                  x: pos.x,
+                  y: pos.y,
+                  lat: p.x,
+                  lng: p.y,
+                  plat: p.lat,
+                  plon: p.lon,
+                  heading: p.heading,
+                  type: p.type,
+                  label: p.label,
+                }
+              })
+
+
+              const gridCount = Math.max(4, Math.min(20, Math.round(10 / zoomFactor)))
+
+              ctx.setStrokeStyle('rgba(134, 134, 134, 0.34)')
+              ctx.setLineWidth(0.4)
+              for (let i = 0; i <= gridCount; i++) {
+
+                const lng = newMinLng + (zoomedLngRange / gridCount) * i
+                const pos = toCanvas(newMinLat, lng)
+                ctx.beginPath()
+                ctx.moveTo(pos.x, 0)
+                ctx.lineTo(pos.x, canvasHeight)
+                ctx.stroke()
+
+
+                const lat = newMaxLat - (zoomedLatRange / gridCount) * i
+                const pos2 = toCanvas(lat, newMinLng)
+                ctx.beginPath()
+                ctx.moveTo(0, pos2.y)
+                ctx.lineTo(canvasWidth, pos2.y)
+                ctx.stroke()
+              }
+
+              const origin = rawPoints.find(p => p.type === 'origin')
+              if (!origin) {
+                // console.warn('⚠️ 未找到原点')
+                return
+              }
+
+              const originPos = toCanvas(origin.x, origin.y)
+              ctx.beginPath()
+              ctx.arc(originPos.x, originPos.y, 8 + 3 + toleranceCm * 0.06, 0, 2 * Math.PI)
+              ctx.setFillStyle('rgba(34, 197, 94, 0.15)')
+              ctx.fill()
+              ctx.setStrokeStyle('rgba(34, 197, 94, 0.5)')
+              ctx.setLineWidth(0.6)
+              ctx.stroke()
+
+
+              const vehicle = rawPoints.find(p => p.type === 'vehicle');
+
+              // 计算相对位置
+              const dx = (vehicle?.x || 0) - (origin?.x || 0);
+              const dy = (vehicle?.y || 0) - (origin?.y || 0);
+              const originOnRight = dx > 0;
+              const originOnBottom = dy > 0;
+
+
+              // , `航向: ${point.heading || 0}`
+              points.forEach(point => {
+                const infoLines = [
+                  ` ${(point.plon || 0).toFixed(4)},${(point.plat || 0).toFixed(4)}`
+                  // `经度: ${(point.plon || 0).toFixed(4)}`,
+                  // `纬度: ${(point.plat || 0).toFixed(4)}`
+                ];
+                console.log("infoX", infoLines,)
+                const lineHeight = 10;
+                const padding = 4;//左右
+                const offset = 5; // 点与信息框的间距+ padding * 2;+ padding * 1.5;
+                let infoX, infoY;
+                // 计算信息框尺寸
+                const maxWidth = Math.max(...infoLines.map(line => ctx.measureText(line).width));
+                const boxWidth = maxWidth
+                const boxHeight = infoLines.length * lineHeight
+                const isOrigin = point.type === 'origin';
+
+                // ===== 1. 根据相对位置选择方向 =====
+                if (isOrigin) {
+                  // 原点：zuo方向
+                  infoX = originOnRight ? point.x - boxWidth - offset * 2 : point.x + offset * 2;
+                  infoY = originOnBottom ? point.y - boxHeight - offset : point.y + offset;
+                } else {
+                  // 机器人：方向
+                  infoX = originOnRight ? point.x + offset * 2 : point.x - boxWidth - offset * 2;//youzuo
+                  infoY = originOnBottom ? point.y + offset : point.y - boxHeight - offset;
+                }
+
+                // ===== 2. 边界强制修正（确保不超出） =====
+                // 水平修正
+                if (infoX < 0) {
+                  // 左边超出 → 改到右边
+                  infoX = point.x - offset * 2;
+                }
+                if (infoX + boxWidth > canvasWidth - 15) {
+                  // 右边超出 → 改到左边
+                  infoX = point.x - boxWidth - offset * 2;
+                }
+                // 如果左右都超出 → 居中
+                if (infoX < 0 || infoX + boxWidth > canvasWidth - 15) {
+                  infoX = (canvasWidth - boxWidth) / 2;
+                }
+
+                // 垂直修正
+                if (infoY < 0) {
+                  // 上边超出 → 改到下边
+                  infoY = point.y + offset;
+                }
+                if (infoY + boxHeight > canvasHeight) {
+                  // 下边超出 → 改到上边
+                  infoY = point.y - boxHeight - offset;
+                }
+                // 如果上下都超出 → 居中
+                if (infoY < 0 || infoY + boxHeight > canvasHeight) {
+                  infoY = (canvasHeight - boxHeight) / 2;
+                }
+
+                // ===== 3. 最终安全边界（保底） =====
+                infoX = Math.max(0, Math.min(infoX, canvasWidth - boxWidth));
+                infoY = Math.max(0, Math.min(infoY, canvasHeight - boxHeight));
+
+
+                ctx.setFontSize(9);
+                ctx.setTextAlign('left');
+                ctx.setTextBaseline('top');
+                // ctx.fillStyle = 'rgba(70, 95, 122, 0.3)';
+                // // 绘制圆角矩形背景（可选）
+                // const radius = 4; // 圆角大小
+                // ctx.beginPath();
+                // ctx.moveTo(infoX + radius, infoY);
+                // ctx.lineTo(infoX + boxWidth - radius, infoY);
+                // ctx.quadraticCurveTo(infoX + boxWidth, infoY, infoX + boxWidth, infoY + radius);
+                // ctx.lineTo(infoX + boxWidth, infoY + boxHeight - radius);
+                // ctx.quadraticCurveTo(infoX + boxWidth, infoY + boxHeight, infoX + boxWidth - radius, infoY + boxHeight);
+                // ctx.lineTo(infoX + radius, infoY + boxHeight);
+                // ctx.quadraticCurveTo(infoX, infoY + boxHeight, infoX, infoY + boxHeight - radius);
+                // ctx.lineTo(infoX, infoY + radius);
+                // ctx.quadraticCurveTo(infoX, infoY, infoX + radius, infoY);
+                // ctx.closePath();
+                // ctx.fill();
+
+                // 画圆点
+                if (point.type === 'origin') {
+                  ctx.setFillStyle('#22d3ee')   // 原点位置22d3ee青色
+
+                  infoLines.forEach((line, index) => {
+                    const textX = infoX + padding;
+                    const textY = infoY + padding + index * lineHeight;
+                    ctx.fillText(line, textX, textY);
+                  });
+
+                } else if (point.type === 'vehicle') {
+                  ctx.setFillStyle('#735ee7')   // 机器人位置735ee7
+
+                  infoLines.forEach((line, index) => {
+                    const textX = infoX + padding;
+                    const textY = infoY + padding + index * lineHeight;
+                    ctx.fillText(line, textX, textY);
+                  });
+
+                } else {
+                  ctx.setFillStyle('#ffffff')   // 默认白色
+                }
+
+                ctx.beginPath()
+                ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI)
+                ctx.fill()
+              })
+
+              // && 
+              if (isActivecontrol.current && activeTab === 'control') {
+                ctx.draw(true, () => {
+                  console.log('✅ 绘制完成，可以查看')
+                })
+              }
+            }).exec();
+
+          }
+        } catch (error) {
+
+
+          console.error('getDeviceShadow加载失败:', error);
         }
       }
-
-      const ctx = Taro.createCanvasContext('path-canvas')
-      const query = Taro.createSelectorQuery()
-
-      query.select('.path-canvas').boundingClientRect((rect: any) => {
-        if (!rect) {
-          console.warn('元素未找到')
-          return
-        }
-
-        const canvasWidth = rect.width
-        const canvasHeight = rect.height
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-        const lats = rawPoints.map(p => p.x)  // 纬度
-        const lngs = rawPoints.map(p => p.y)  // 经度
-
-        const minLat = Math.min(...lats)
-        const maxLat = Math.max(...lats)
-        const minLng = Math.min(...lngs)
-        const maxLng = Math.max(...lngs)
-        const latRange = Math.max(maxLat - minLat, 0.0001)
-        const lngRange = Math.max(maxLng - minLng, 0.0001)
-
-        const zoomFactor = 2  // 放大倍数，1 = 原始，2 = 2倍
-
-        const centerLat = (minLat + maxLat) / 2
-        const centerLng = (minLng + maxLng) / 2
-
-        const zoomedLatRange = latRange / zoomFactor
-        const zoomedLngRange = lngRange / zoomFactor
-
-        const newMinLat = centerLat - zoomedLatRange / 2
-        const newMaxLat = centerLat + zoomedLatRange / 2
-        const newMinLng = centerLng - zoomedLngRange / 2
-        const newMaxLng = centerLng + zoomedLngRange / 2
-
-        function toCanvas(lat, lng) {
-          const y = ((newMaxLat - lat) / (newMaxLat - newMinLat)) * canvasHeight
-          const x = ((lng - newMinLng) / (newMaxLng - newMinLng)) * canvasWidth
-          return { x, y }
-        }
-        const points = rawPoints.map(p => {
-          const pos = toCanvas(p.x, p.y)
-          // console.log(`📍 ${p.label}: 原始(${p.x}, ${p.y}) → Canvas(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`)
-          return {
-            x: pos.x,
-            y: pos.y,
-            lat: p.x,
-            lng: p.y,
-            type: p.type,
-            label: p.label,
-          }
-        })
-        // ===== 4. 获取原点位置 =====
-        const origin = rawPoints.find(p => p.type === 'origin')
-        if (!origin) {
-          console.warn('⚠️ 未找到原点')
-          return
-        }
-
-        const originPos = toCanvas(origin.x, origin.y)
-
-
-        // ===== 画灰色网格 =====
-        ctx.setStrokeStyle('rgba(134, 134, 134, 0.34)')
-        ctx.setLineWidth(0.4)
-
-        for (let x = 0; x <= canvasWidth; x += 20) {
-          ctx.beginPath()
-          ctx.moveTo(x, 0)
-          ctx.lineTo(x, canvasHeight)
-          ctx.stroke()
-        }
-
-        for (let y = 0; y <= canvasHeight; y += 20) {
-          ctx.beginPath()
-          ctx.moveTo(0, y)
-          ctx.lineTo(canvasWidth, y)
-          ctx.stroke()
-        }
-
-        // ✅ 用填充，半径大一点
-        ctx.beginPath()
-        ctx.arc(originPos.x, originPos.y, Number((res.detail.taskOriginToleranceM * 500 * zoomFactor)), 0, 2 * Math.PI)
-        ctx.setFillStyle('rgba(34, 197, 94, 0.15)')
-        ctx.fill()
-        ctx.setStrokeStyle('rgba(34, 197, 94, 0.5)')
-        ctx.setLineWidth(0.6)
-        ctx.stroke()
-
-        // =====  画点位 =====
-        points.forEach(point => {
-          // 画圆点
-          if (point.type === 'origin') {
-            ctx.setFillStyle('#22d3ee')   // 原点位置22d3ee青色
-          } else if (point.type === 'vehicle') {
-            ctx.setFillStyle('#735ee7')   // 机器人位置735ee7
-          } else {
-            ctx.setFillStyle('#ffffff')   // 默认白色
-          }
-
-          ctx.beginPath()
-          ctx.arc(point.x, point.y, 7, 0, 2 * Math.PI)
-          ctx.fill()
-        })
-
-        // ctx.draw()
-        // 使用回调确保绘制完成
-        ctx.draw(true, () => {
-          // console.log('✅ 绘制完成，可以查看')
-        })
-      }).exec()
-
-
-    } catch (error) {
-      console.error('getDeviceShadow加载失败:', error)
     }
+  };
+  const [expanded, setExpanded] = useState(false)
 
-
-
+  const handleToggle = () => {
+    setExpanded(!expanded)
   }
 
+  const toggleSection = (key) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+  }
 
+  // 通用的更新函数，支持多个数据源
+  function updateDataFromApi(dataObject, apiData) {
+    for (const key in dataObject) {
+      const section = dataObject[key];
+
+      // 处理直接包含 attrs 的情况（如 panelData）
+      if (section.attrs && !section.title) {
+        section.attrs.forEach(item => {
+          if (item.field && apiData[item.field] !== undefined) {
+            item.value = apiData[item.field];
+          }
+        });
+      }
+
+      // 处理包含 title 和 attrs 的情况（如 vehicleData 的 body、battery 等）
+      if (section.title && section.attrs) {
+        section.attrs.forEach(item => {
+          if (item.field && apiData[item.field] !== undefined) {
+            item.value = apiData[item.field];
+          }
+        });
+      }
+
+      // 处理包含 children 的情况（如 vehicleData 的 hardware）
+      if (section.children) {
+        section.children.forEach(child => {
+          child.attrs.forEach(item => {
+            if (item.field && apiData[item.field] !== undefined) {
+              item.value = apiData[item.field];
+            }
+          });
+        });
+      }
+    }
+  }
+
+  const [expandedSections, setExpandedSections] = useState({
+    body: true,
+    battery: true,
+    brush: true,
+    steering: true,
+    airPump: true,
+    solenoidValve: true,
+    hardware: true,
+    panel: true,
+    ultrasonic: true,
+    rtk: true,
+  })
+
+  // 模拟数据
+
+  const vehicleData = {
+    body: {
+      title: '本体',
+      attrs: [
+        { label: '小车ID', value: 'T01250005', field: 'vehicleId' },
+        { label: '当前行驶速度', value: '1.2 m/s', field: 'currentSpeed' },
+        { label: '行驶里程', value: '128.5 m', field: 'totalMileage' },
+        { label: '使能/通电状态', value: '已使能', field: 'enableStatus' },
+        { label: '转向速度', value: '30°/s', field: 'steeringSpeed' },
+        { label: '当前工作模式', value: '自动模式', field: 'workMode' },
+      ]
+    },
+    battery: {
+      title: '电池',
+      attrs: [
+        { label: '电池电压', value: '48.2 V', field: 'batteryVoltage' },
+        { label: '电池电流', value: '15.6 A', field: 'batteryCurrent' },
+        { label: '电池温度', value: '36°C', field: 'batteryTemp' },
+        { label: 'SOC', value: '85%', field: 'soc' },
+        { label: 'SOH', value: '95%', field: 'soh' },
+        { label: '电池状态', value: '正常', field: 'batteryStatus' },
+        { label: '低电阈值', value: '20%', field: 'lowPowerThreshold' },
+        { label: '数据更新时间', value: '2026-06-30 14:30:25', field: 'batteryUpdateTime' },
+      ]
+    },
+    brush: {
+      title: '滚刷',
+      attrs: [
+        { label: '当前滚刷速度', value: '800 rpm', field: 'brushSpeed' },
+        { label: '滚刷状态', value: '运行中', field: 'brushStatus' },
+        { label: '前滚刷重量', value: '2.5 kg', field: 'frontBrushWeight' },
+        { label: '后滚刷重量', value: '2.5 kg', field: 'rearBrushWeight' },
+        { label: '前滚刷宽度', value: '80 cm', field: 'frontBrushWidth' },
+        { label: '后滚刷宽度', value: '80 cm', field: 'rearBrushWidth' },
+      ]
+    },
+    hardware: {
+      title: '硬件',
+      attrs: [
+        { label: '硬件总体状态', value: '正常', field: 'hardwareOverallStatus' },
+        { label: '数据更新时间', value: '2026-06-30 14:30:25', field: 'hardwareUpdateTime' },
+      ],
+      children: [
+        {
+          key: 'steering',
+          title: '舵机',
+          attrs: [
+            { label: '舵机状态', value: '正常', field: 'steeringStatus' },
+            { label: '当前位置状态', value: '抬升', field: 'steeringPosition' },
+          ]
+        },
+        {
+          key: 'airPump',
+          title: '气泵',
+          attrs: [
+            { label: '气泵状态', value: '正常', field: 'airPumpStatus' },
+            { label: '工作状态', value: '工作中', field: 'airPumpWorkStatus' },
+          ]
+        },
+        {
+          key: 'solenoidValve',
+          title: '电磁阀',
+          attrs: [
+            { label: '电磁阀状态', value: '关闭', field: 'solenoidValveStatus' },
+            { label: '开关状态', value: '关闭', field: 'solenoidValveSwitch' },
+          ]
+        },
+        {
+          key: 'ultrasonic',
+          title: '超声波传感器',
+          attrs: [
+            { label: '超声波状态', value: '正常', field: 'ultrasonicStatus' },
+            { label: '测量值', value: '0.5 m', field: 'ultrasonicValue' },
+          ]
+        },
+      ]
+    },
+    rtk: {
+      title: 'RTK',
+      attrs: [
+        { label: '当前纬度', value: '32.0589° N', field: 'latitude' },
+        { label: '当前经度', value: '118.7832° E', field: 'longitude' },
+        { label: '高程/海拔', value: '15.6 m', field: 'altitude' },
+        { label: '航向角', value: '45.2°', field: 'headingAngle' },
+        { label: '俯仰角', value: '2.1°', field: 'pitchAngle' },
+        { label: '横滚角', value: '1.5°', field: 'rollAngle' },
+        { label: '定位解状态', value: '固定解', field: 'positionStatus' },
+        { label: '定向/姿态解状态', value: '固定解', field: 'orientationStatus' },
+        { label: '卫星数量', value: '18', field: 'satelliteCount' },
+        { label: '水平精度因子', value: '0.8', field: 'hdop' },
+        { label: '差分龄期', value: '2.5 s', field: 'differentialAge' },
+        { label: '基站ID', value: 'BASE-001', field: 'baseStationId' },
+        { label: '数据更新时间', value: '2026-06-30 14:30:25', field: 'rtkUpdateTime' },
+      ]
+    }
+  };
+
+
+  const panelData = {
+    title: '光伏板',
+    attrs: [
+      { label: '光伏板宽度', value: '100 cm', field: 'panelWidth' },
+      { label: '光伏板长度', value: '200 cm', field: 'panelLength' },
+      { label: '光伏板高度', value: '30 cm', field: 'panelHeight' },
+      { label: 'X方向倾斜角', value: '15°', field: 'tiltAngleX' },
+      { label: 'X方向板间距', value: '10 cm', field: 'spacingX' },
+      { label: 'Y方向板间距', value: '10 cm', field: 'spacingY' },
+    ]
+  };
+
+
+  interface Point {
+    x: number;
+    y: number;
+  }
+
+  const SHAPE = {
+
+    rectTop: { x: 20, y: 25, w: 300, h: 95 },
+    bridge: { x: 20, y: 120, w: 16, h: 16 },
+    rectBottom: { x: 20, y: 136, w: 300, h: 95 },
+  };
+
+  // 规划路径点
+  const PATH_POINTS: Point[] = [
+    { x: 26, y: 225 },
+    { x: 26, y: 32 },
+    { x: 315, y: 32 },
+    { x: 315, y: 58 },
+    { x: 26, y: 58 },
+    { x: 26, y: 84 },
+    { x: 315, y: 84 },
+    { x: 315, y: 110 },
+    { x: 26, y: 110 },
+  ];
+
+
+  const [position, setPosition] = useState<Point>(PATH_POINTS[0]);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [showPath, setShowPath] = useState<boolean>(true);
+  const [speed, setSpeed] = useState<number>(10);
+
+  // Canvas 相关
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const isCanvasReady = useRef<boolean>(false);
+  const isFirstDraw = useRef<boolean>(true);
+
+  // 轨迹数据
+  const trailRef = useRef<Point[]>([PATH_POINTS[0]]);
+  const drawnCountRef = useRef<number>(1);
+
+  // 路径移动相关
+  const pathIndexRef = useRef<number>(0);
+  const progressRef = useRef<number>(0);
+  const animFrameRef = useRef<number | null>(null);
+  const positionRef = useRef<Point>(PATH_POINTS[0]);
+
+  // ===== ★★★ 新增：绘制频率控制 ★★★ =====
+  const lastDrawTime = useRef<number>(0);
+  const DRAW_INTERVAL = 20; // 每 50ms 绘制一次（20fps）
+
+  const isDrawing = useRef<boolean>(false);
+
+  // ============================================================
+  // 获取 DPR
+  // ============================================================
+  const getDpr = useCallback(() => {
+    try {
+      const deviceInfo = Taro.getDeviceInfo() as { pixelRatio?: number };
+      return deviceInfo.pixelRatio || 2;
+    } catch {
+      try {
+        const systemInfo = Taro.getSystemInfoSync() as { pixelRatio?: number };
+        return systemInfo.pixelRatio || 2;
+      } catch {
+        return 2;
+      }
+    }
+  }, []);
+
+  // ============================================================
+  // 绘制背景
+  // ============================================================
+  const drawBackground = useCallback((ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    ctx.fillStyle = '#0f3460';
+    ctx.fillRect(0, 0, W, H);
+
+    const buildShapePath = () => {
+      const { rectTop, bridge, rectBottom } = SHAPE;
+      ctx.beginPath();
+      ctx.rect(rectTop.x, rectTop.y, rectTop.w, rectTop.h);
+      ctx.rect(bridge.x, bridge.y, bridge.w, bridge.h);
+      ctx.rect(rectBottom.x, rectBottom.y, rectBottom.w, rectBottom.h);
+      ctx.closePath();
+    };
+
+    ctx.save();
+    buildShapePath();
+    ctx.clip();
+
+    const centerX = W / 2;
+    const centerY = H / 2;
+    const grad = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, Math.max(W, H) / 2);
+    grad.addColorStop(0, '#1a1a5e');
+    grad.addColorStop(1, '#0a0a2a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    const gridStep = 15;
+    for (let x = 0; x < W; x += gridStep) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let y = 0; y < H; y += gridStep) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    if (showPath) {
+      ctx.save();
+      ctx.setLineDash([4, 6]);
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(PATH_POINTS[0].x, PATH_POINTS[0].y);
+      for (let i = 1; i < PATH_POINTS.length; i++) {
+        ctx.lineTo(PATH_POINTS[i].x, PATH_POINTS[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      for (let i = 0; i < PATH_POINTS.length; i++) {
+        const p = PATH_POINTS[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = i === pathIndexRef.current ? 'rgba(34, 211, 238, 0.7)' : 'rgba(34, 211, 238, 0.25)';
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.font = '8px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(String(i), p.x, p.y - 6);
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    buildShapePath();
+    ctx.strokeStyle = 'rgba(34, 211, 238, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#22d3ee';
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const { rectTop, bridge, rectBottom } = SHAPE;
+    ctx.fillText('上区域', rectTop.x + rectTop.w / 2, rectTop.y + rectTop.h / 2);
+    ctx.fillText('桥', bridge.x + bridge.w / 2, bridge.y + bridge.h / 2);
+    ctx.fillText('下区域', rectBottom.x + rectBottom.w / 2, rectBottom.y + rectBottom.h / 2);
+    ctx.restore();
+
+    ctx.restore();
+  }, [showPath]);
+
+  // ============================================================
+  // ★★★ 批量绘制轨迹（一次性绘制所有待处理的点） ★★★
+  // ============================================================
+  const drawTrailBatch = useCallback((ctx: CanvasRenderingContext2D) => {
+    // const trail = trailRef.current;
+    // const drawnCount = drawnCountRef.current;
+
+    // // 从已绘制的位置开始绘制
+    // for (let i = Math.max(1, drawnCount); i < trail.length; i++) {
+    //   const p1 = trail[i - 1];
+    //   const p2 = trail[i];
+    //   const alpha = 0.2 + 0.8 * (i / trail.length);
+    //   ctx.beginPath();
+    //   ctx.moveTo(p1.x, p1.y);
+    //   ctx.lineTo(p2.x, p2.y);
+    //   ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
+    //   ctx.lineWidth = 1.5 + 2.5 * (i / trail.length);
+    //   ctx.shadowColor = '#22d3ee';
+    //   ctx.shadowBlur = 3;
+    //   ctx.stroke();
+    // }
+
+    // drawnCountRef.current = trail.length;
+  }, []);
+
+  // ============================================================
+  // 绘制机器人
+  // ============================================================
+  const drawRobot = useCallback((ctx: CanvasRenderingContext2D) => {
+    const px = position.x;
+    const py = position.y;
+    if (px <= 0 || py <= 0) return;
+
+    const grad2 = ctx.createRadialGradient(px, py, 2, px, py, 16);
+    grad2.addColorStop(0, '#7ae9ff');
+    grad2.addColorStop(0.3, '#22d3ee');
+    grad2.addColorStop(1, 'rgba(34,211,238,0.5)');
+    ctx.shadowColor = '#22d3ee';
+    ctx.shadowBlur = 25;
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fillStyle = grad2;
+    ctx.fill();
+
+    // ctx.shadowBlur = 0;
+    // ctx.beginPath();
+    // ctx.arc(px - 1.5, py - 1.5, 2, 0, Math.PI * 2);
+    // ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    // ctx.fill();
+  }, [position]);
+
+
+  // ★★★ 主绘制函数（带防抖） ★★★
+  // ============================================================
+  const draw = useCallback(() => {
+    console.log('🎨 draw 被调用');
+    const ctx = ctxRef.current;
+    const canvas = canvasRef.current;
+    if (!ctx || !canvas) return;
+
+    // 如果正在绘制，跳过
+    if (isDrawing.current) return;
+    isDrawing.current = true;
+
+    try {
+      const dpr = getDpr();
+      const canvasWidth = 350;
+      const canvasHeight = 280;
+
+      const pixelWidth = canvasWidth * dpr;
+      const pixelHeight = canvasHeight * dpr;
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+
+      if (isFirstDraw.current) {
+        drawBackground(ctx, canvasWidth, canvasHeight);
+
+        const trail = trailRef.current;
+        for (let i = 1; i < trail.length; i++) {
+          const p1 = trail[i - 1];
+          const p2 = trail[i];
+          const alpha = 0.2 + 0.8 * (i / trail.length);
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
+          ctx.lineWidth = 1.5 + 2.5 * (i / trail.length);
+          ctx.shadowColor = '#22d3ee';
+          ctx.shadowBlur = 6;
+          ctx.stroke();
+        }
+        drawnCountRef.current = trail.length;
+
+        drawRobot(ctx);
+
+        isFirstDraw.current = false;
+        isCanvasReady.current = true;
+        isDrawing.current = false;
+        return;
+      }
+      drawRobot(ctx);
+      // 增量绘制
+      drawTrailBatch(ctx);
+
+
+      isCanvasReady.current = true;
+    } catch (e) {
+      console.warn('绘制错误:', e);
+    } finally {
+      isDrawing.current = false;
+    }
+
+    // isDrawing.current = false;
+  }, [drawBackground, drawTrailBatch, drawRobot, getDpr]);
+
+  // ============================================================
+  // 初始化 Canvas
+  // ============================================================
   useEffect(() => {
+    const initCanvas = () => {
+      const query = Taro.createSelectorQuery();
+      query.select('#pathCanvas')
+        .node((res: any) => {
+          if (res && res.node) {
+            const canvas = res.node as HTMLCanvasElement;
+            canvasRef.current = canvas;
+            const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+            ctxRef.current = ctx;
+            isFirstDraw.current = true;
+            draw();
+          }
+        })
+        .exec();
+    };
+
+    setTimeout(initCanvas, 1000);
+  }, [draw]);
+
+  // ============================================================
+  // // showPath 变化时重绘
+  // // ============================================================
+  // useEffect(() => {
+  //   if (isCanvasReady.current) {
+  //     isFirstDraw.current = true;
+  //     draw();
+
+  //   }
+  // }, [showPath, draw]);
+
+  // ============================================================
+  // ★★★ 移动逻辑（优化版：控制绘制频率） ★★★
+  // ============================================================
+  const moveAlongPath = useCallback(() => {
+    if (!isPlaying) return;
+
+    const start = PATH_POINTS[pathIndexRef.current];
+    const end = PATH_POINTS[pathIndexRef.current + 1];
+
+    if (!end) {
+      pathIndexRef.current = 0;
+      progressRef.current = 0;
+      trailRef.current = [PATH_POINTS[0]];
+      drawnCountRef.current = 1;
+      positionRef.current = PATH_POINTS[0];
+      // setPosition(PATH_POINTS[0]);
+      isFirstDraw.current = true;
+      draw();
+      return;
+    }
+
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const totalDist = Math.sqrt(dx * dx + dy * dy);
+
+    if (totalDist === 0) {
+      pathIndexRef.current++;
+      return;
+    }
+
+    const step = speed / 60 * 100;
+    const stepProgress = step / totalDist;
+    progressRef.current += stepProgress;
+
+    let newPos: Point;
+
+    if (progressRef.current >= 1) {
+      progressRef.current = 0;
+      pathIndexRef.current++;
+
+      if (pathIndexRef.current >= PATH_POINTS.length - 1) {
+        newPos = PATH_POINTS[PATH_POINTS.length - 1];
+        trailRef.current.push(newPos);
+
+        positionRef.current = newPos;
+        // setPosition(newPos);
+        draw();
+
+        setTimeout(() => {
+          pathIndexRef.current = 0;
+          progressRef.current = 0;
+          const p0 = PATH_POINTS[0];
+          trailRef.current = [p0];
+          drawnCountRef.current = 1;
+          positionRef.current = p0;
+          // setPosition(p0);
+          isFirstDraw.current = true;
+          draw();
+        }, 3500);
+        return;
+      }
+
+      newPos = PATH_POINTS[pathIndexRef.current];
+    } else {
+      const currentStart = PATH_POINTS[pathIndexRef.current];
+      const currentEnd = PATH_POINTS[pathIndexRef.current + 1];
+      newPos = {
+        x: currentStart.x + (currentEnd.x - currentStart.x) * progressRef.current,
+        y: currentStart.y + (currentEnd.y - currentStart.y) * progressRef.current,
+      };
+    }
+    positionRef.current = newPos;
+    // 更新位置
+    setPosition(newPos);
+    trailRef.current.push(newPos);
+
+
+    const now = Date.now();
+    if (now - lastDrawTime.current >= DRAW_INTERVAL) {
+      lastDrawTime.current = now;
+      draw();
+    }
+
+  }, [isPlaying, speed, draw]);
+  // ============================================================
+  // ★★★ 用 setInterval 替代 requestAnimationFrame ★★★
+  // ============================================================
+  useEffect(() => {
+    // 清除旧定时器
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (!isPlaying) return;
+
+    // ★★★ 每秒执行一次 ★★★
+    timerRef.current = setInterval(() => {
+      moveAlongPath();
+    }, 1500);  // 1000ms = 1秒
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [isPlaying, moveAlongPath]);
+  // ============================================================
+  // 动画循环
+  // ============================================================
+  // useEffect(() => {
+  //   const animate = () => {
+  //     moveAlongPath();
+  //     animFrameRef.current = requestAnimationFrame(animate);
+  //   };
+
+  //   animate();
+
+  //   return () => {
+  //     if (animFrameRef.current) {
+  //       cancelAnimationFrame(animFrameRef.current);
+  //       animFrameRef.current = null;
+  //     }
+  //   };
+  // }, [moveAlongPath]);
+
+  // ============================================================
+  // 清空轨迹
+  // ============================================================
+  const clearTrail = useCallback(() => {
+    trailRef.current = [{ x: position.x, y: position.y }];
+    drawnCountRef.current = 1;
+    isFirstDraw.current = true;
+    draw();
+  }, [position, draw]);
+
+  // ============================================================
+  // 重置路径
+  // ============================================================
+  const resetPath = useCallback(() => {
+    pathIndexRef.current = 0;
+    progressRef.current = 0;
+    trailRef.current = [PATH_POINTS[0]];
+    drawnCountRef.current = 1;
+    setPosition(PATH_POINTS[0]);
+    isFirstDraw.current = true;
+    draw();
+  }, [draw]);
+
+  // ============================================================
+  // 切换函数
+  // ============================================================
+  const toggleShowPath = useCallback(() => {
+    setShowPath((prev) => !prev);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+  }, []);
+
+  const handleSpeedChange = useCallback((e: any) => {
+    setSpeed(e.detail.value);
+  }, []);
+  useEffect(() => {
+    // @ts-ignore
+    window.insertPoint = (x: number, y: number) => {
+      positionRef.current = { x, y };
+      draw();
+      console.log('📥 外部插入点位:', x, y);
+    };
+  }, [draw]);
+
+  // ============================================================
+  // 自定义复选框（使用 transform 居中）
+  // ============================================================
+  const CustomCheckbox: React.FC<{
+    checked: boolean;
+    onChange: () => void;
+    color?: string;
+  }> = ({ checked, onChange, color = '#22d3ee' }) => {
+    return (
+      <View
+        className={`custom-checkbox-box ${checked ? 'checked' : ''}`}
+        style={{
+          width: '26rpx',
+          height: '26rpx',
+          borderColor: checked ? color : 'rgba(255,255,255,0.3)',
+          backgroundColor: checked ? color : 'rgba(255,255,255,0.05)',
+          boxShadow: checked ? `0 0 16rpx ${color}40` : 'none',
+          borderRadius: '4rpx',
+          borderWidth: '2rpx',
+          borderStyle: 'solid',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onChange();
+        }}
+      >
+        {checked && (
+          <Text
+            style={{
+              color: '#fff',
+              fontSize: '26rpx',
+              fontWeight: 'bold',
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              lineHeight: '26rpx',
+            }}
+          >
+            ✓
+          </Text>
+        )}
+      </View>
+    );
+  };
 
 
 
+  // 在组件外部或内部定义渲染函数
+  const renderAttrsGrid = (attrs) => {
+    if (!attrs || attrs.length === 0) return null;
 
+    return (
+      <View className='attr-grid'>
+        {attrs.reduce((rows, attr, index) => {
+          if (index % 2 === 0) {
+            rows.push([attr]);
+          } else {
+            rows[rows.length - 1].push(attr);
+          }
+          return rows;
+        }, []).map((row, rowIdx) => (
+          <View className='attr-row' key={rowIdx}>
+            {row.map((attr, idx) => (
+              <View className='attr-group' key={idx}>
+                <Text className='attr-label'>{attr.label}：</Text>
+                <Text className='attr-value'>{attr.value}</Text>
+              </View>
+            ))}
+            {row.length === 1 && <View className='attr-group-placeholder' />}
+          </View>
+        ))}
+      </View>
+    );
+  };
 
-  }, [])  // 空数组 = 只在组件挂载时执行一次
 
   return (
     <ScrollView className="t-railcar-page" scrollY={!joystickActive}>
-      <View className="console-tab-shell">
-        <View className="console-tab-switch">
+      {/* <View className="console-tab-shell"> */}
+
+
+      {/* <View className="console-tab-switch">
           <View
             className={`console-tab-item ${activeTab === 'control' ? 'console-tab-item--active' : ''}`}
             onClick={() => switchConsoleTab('control')}
@@ -1857,184 +2838,79 @@ export default function TRailcarStatusPage() {
             <Text className="console-tab-title">任务页面</Text>
             <Text className="console-tab-subtitle">参数 / 规划 / 缓存</Text>
           </View>
-        </View>
-      </View>
+        </View> */}
+
+      {/* </View> */}
+
+
 
       {activeTab === 'control' ? (
         <>
-          <View className="section section--priority">
-            <View className="path-priority-card">
-              <View className="path-section-header">
-                <View>
-                  <Text className="section-title">路径预览</Text>
-                  <Text className="path-priority-summary">
-                    首屏先看真实任务轨迹，再看启动条件和控制状态。
+          {/* <View className="section section--priority"> */}
+
+          <View className="path-demo-page">
+
+
+            {/* ===== Canvas ===== */}
+            <View className="canvas-wrapper">
+
+              <canvas
+                id="pathCanvas"
+                // @ts-ignore
+                type="2d"
+                className="path-canvas"
+              />
+
+
+            </View>
+            {/* ===== 图例（横向，放在图表下方） ===== */}
+            <View className="legend-horizontal">
+              <View className="legend-items">
+                <View className="legend-item">
+                  <View className="legend-dot robot" />
+                  <Text className="legend-label">机器人位置</Text>
+                </View>
+                <View className="legend-item">
+                  <View className="legend-line" />
+                  <Text className="legend-label">
+                    实时路线 <Text className="legend-small"></Text>
                   </Text>
                 </View>
-                <Button className="path-refresh-btn" onClick={handleRefreshPath} disabled={pathLoading}>
-                  {pathLoading ? '刷新中' : '刷新路径'}
-                </Button>
-              </View>
 
-              {pathSegmentCount ? (
-                <PathCanvas
-                  segments={taskPath!.segments}
-                  currentPoint={currentPoint}
-                  currentTaskIndex={currentTaskIndex}
-                />
-              ) : (
-                <View className="path-empty-card">
-                  <Text className="path-empty-title">
-                    {pathLoading ? '正在拉取真实路径...' : '暂无真实路径数据'}
-                  </Text>
-                  <Text className="path-empty-text">
-                    {pathError || '还没有收到 Python 返回的 get_task_path 结果，可以先刷新一次路径。'}
+                {/* ===== 规划路径 ===== */}
+                <View className="legend-item clickable" onClick={toggleShowPath}>
+                  <CustomCheckbox
+                    checked={showPath}
+                    onChange={toggleShowPath}
+                    color="#22d3ee"
+                  />
+                  <View className="legend-line dashed" />
+                  <Text className="legend-label">
+                    规划路径 <Text className="legend-small"></Text>
                   </Text>
                 </View>
-              )}
 
-              <View className="path-preview-meta">
-                <Text className="path-preview-meta-text">
-                  {pathSegmentCount
-                    ? `当前显示的是云平台缓存的真实任务路径，共 ${pathSegmentCount} 段。`
-                    : '当前还没有拿到真实路径缓存，所以这里只展示空态提示。'}
-                </Text>
-              </View>
-
-              {showRuntimeBanner && (
-                <View className={`runtime-banner runtime-banner--${runtimeBannerTone}`}>
-                  <Text className="runtime-banner-title">
-                    启动条件：{showControlState ? resolveControlStateLabel(snapshot.controlState) : '启动提示'}
-                  </Text>
-                  <Text className="runtime-banner-text">
-                    {visibleStartCheckReason || '当前没有新的阻塞信息。'}
-                  </Text>
-                  {typeof startDistance === 'number' && typeof startTolerance === 'number' && (
-                    <Text className="runtime-banner-text">
-                      距任务起点 {startDistance.toFixed(2)} m，允许范围 {startTolerance.toFixed(2)} m
-                    </Text>
-                  )}
-                </View>
-              )}
-              <View className='path-canvas-card'>
-
-
-                <View className="title-row">
-                  <Text className="manual-control-title">点位调整</Text>
-                </View>
-
-                <View className="info-row">
-                  <Text className="manual-control-info">
-                    容错范围：{!isNaN(taskstartToleranceM) && taskstartToleranceM !== undefined
-                      ? (taskstartToleranceM * 100).toFixed(2)
-                      : '0.00'
-                    }厘米
-                  </Text>
-                  <Text className="manual-control-info">
-                    当前距离：{!isNaN(taskdistance) && taskdistance !== undefined
-                      ? (taskdistance * 100).toFixed(2)
-                      : '0.00'
-                    }厘米
-                  </Text>
-
-                </View>
-
-                <View className="msg-row">
-                  {/* <View className={`status-dot ${taskdistance <= taskstartToleranceM ? 'green' : 'red'}`} /> */}
-                  <Text className="manual-control-title"> {taskmsg} </Text>
-                </View>
-
-                <Canvas
-                  className='path-canvas'
-                  canvasId='path-canvas'
-                  style={{
-                    width: '100%', height: '150px',
-                    display: 'block',  // 确保显示
-                    // backgroundColor: '#f0f0f0', // 加个背景色看看是否渲染
-                    minHeight: '150px'  // 确保最小高度
-                  }}
-                />
-
-                {/* ===== 图例（原点/车辆位置） ===== */}
-                <View className='legend-container'>
-                  <View className='legend-item'>
-                    <View className='legend-dot origin' />
-                    <Text className='legend-text'>原点位置</Text>
+                {/* <View className="legend-item clickable" onClick={toggleShowPath}>
+                  <View onClick={(e) => { e.stopPropagation(); toggleShowPath(); }}>
+                    <Checkbox
+                      value="showPath"
+                      checked={showPath}
+                      color="#22d3ee"
+                    />
                   </View>
-                  <View className='legend-item'>
-                    <View className='legend-dot vehicle' />
-                    <Text className='legend-text'>机器人位置</Text>
-                  </View>
-                </View>
-              </View>
+                  <View className="legend-line dashed" />
+                  <Text className="legend-label">规划路径 <Text className="legend-small"></Text></Text>
+                </View> */}
 
-              <View className="console-actions console-actions--primary">
-                {renderCommandButton('start', 'console-action-btn--start')}{/* 启动 */}
-                {renderCommandButton('stop', 'console-action-btn--stop')}{/* 停止 */}
-              </View>
 
-              <View className="manual-control-panel">
-                <View className="manual-control-header">
-                  <Text className="manual-control-title">手动控制</Text>
-                  <Text className="manual-control-subtitle">拖动摇杆实时控制，松手自动停止。</Text>
-                </View>
 
-                <View className="joystick-card">
-                  <View
-                    className={`joystick-surface ${joystickActive ? 'joystick-surface--active' : ''}`}
-                    onTouchStart={handleJoystickTouchStart}
-                    onTouchMove={handleJoystickTouchMove}
-                    onTouchEnd={resetJoystick}
-                    onTouchCancel={resetJoystick}
-                  >
-                    <View className="joystick-axis joystick-axis--x" />
-                    <View className="joystick-axis joystick-axis--y" />
-                    <View className="joystick-ring joystick-ring--outer" />
-                    <View className="joystick-ring joystick-ring--inner" />
-                    <View
-                      className={`joystick-knob ${joystickActive ? 'joystick-knob--active' : ''}`}
-                      style={joystickKnobStyle}
-                    >
-                      <Text className="joystick-knob-text">{joystickActive ? '控制' : '摇杆'}</Text>
-                    </View>
-                  </View>
-
-                  <View className="joystick-readout">
-                    <View className="joystick-readout-item">
-                      <Text className="joystick-readout-label">方向</Text>
-                      <Text className="joystick-readout-value">{joystickDirectionLabel}</Text>
-                    </View>
-                    <View className="joystick-readout-item">
-                      <Text className="joystick-readout-label">强度</Text>
-                      <Text className="joystick-readout-value">{joystickVector.power}%</Text>
-                    </View>
-                    <View className="joystick-readout-item">
-                      <Text className="joystick-readout-label">向量</Text>
-                      <Text className="joystick-readout-value">
-                        {joystickVector.x.toFixed(2)} / {joystickVector.y.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <Text className="joystick-status">{joystickStatus}</Text>
-                </View>
-
-                <View className="manual-control-pad">
-                  <View className="manual-control-spacer" />
-                  {renderCommandButton('forward', 'console-action-btn--manual')}
-                  <View className="manual-control-spacer" />
-                  {renderCommandButton('turnLeft', 'console-action-btn--rotate')}
-                  {renderCommandButton('stop', 'console-action-btn--pad-stop')}
-                  {renderCommandButton('turnRight', 'console-action-btn--rotate')}
-                  <View className="manual-control-spacer" />
-                  {renderCommandButton('backward', 'console-action-btn--manual')}
-                  <View className="manual-control-spacer" />
-                </View>
               </View>
             </View>
+
           </View>
+
         </>
-      ) : activeTab === 'status' ? (//状态页面
+      ) : activeTab === 'status' ? (//状态页面activeTab === 'test' ?
         <>
           <View className="section section--status-overview">
             <View className="status-overview-card">
@@ -2142,7 +3018,7 @@ export default function TRailcarStatusPage() {
           </View>
 
         </>
-      ) : (//任务页面
+      ) : activeTab === 'task' ? (//任务页面
         <>
           <View className="section">
             <View className="task-panel">
@@ -2462,6 +3338,476 @@ export default function TRailcarStatusPage() {
             </View>
           </View>
         </>
+      ) : (
+        <>
+          <View className="section section--priority">
+            <View className="path-priority-card">
+              <View className="path-section-header">
+                <View>
+                  <Text className="section-title">路径预览</Text>
+                  <Text className="path-priority-summary">
+                    首屏先看真实任务轨迹，再看启动条件和控制状态。
+                  </Text>
+                </View>
+                <Button className="path-refresh-btn" onClick={handleRefreshPath} disabled={pathLoading}>
+                  {pathLoading ? '刷新中' : '刷新路径'}
+                </Button>
+              </View>
+
+              {pathSegmentCount ? (
+                <PathCanvas
+                  segments={taskPath!.segments}
+                  currentPoint={currentPoint}
+                  currentTaskIndex={currentTaskIndex}
+                />
+              ) : (
+                <View className="path-empty-card">
+                  <Text className="path-empty-title">
+                    {pathLoading ? '正在拉取真实路径...' : '暂无真实路径数据'}
+                  </Text>
+                  <Text className="path-empty-text">
+                    {pathError || '还没有收到 Python 返回的 get_task_path 结果，可以先刷新一次路径。'}
+                  </Text>
+                </View>
+              )}
+
+              <View className="path-preview-meta">
+                <Text className="path-preview-meta-text">
+                  {pathSegmentCount
+                    ? `当前显示的是云平台缓存的真实任务路径，共 ${pathSegmentCount} 段。`
+                    : '当前还没有拿到真实路径缓存，所以这里只展示空态提示。'}
+                </Text>
+              </View>
+
+              {showRuntimeBanner && (
+                <View className={`runtime-banner runtime-banner--${runtimeBannerTone}`}>
+                  <Text className="runtime-banner-title">
+                    启动条件：{showControlState ? resolveControlStateLabel(snapshot.controlState) : '启动提示'}
+                  </Text>
+                  <Text className="runtime-banner-text">
+                    {visibleStartCheckReason || '当前没有新的阻塞信息。'}
+                  </Text>
+                  {typeof startDistance === 'number' && typeof startTolerance === 'number' && (
+                    <Text className="runtime-banner-text">
+                      距任务起点 {startDistance.toFixed(2)} m，允许范围 {startTolerance.toFixed(2)} m
+                    </Text>
+                  )}
+                </View>
+              )}
+              <View className='point-canvas-card'>
+                <View className="title-row">
+                  <Text className="manual-control-title">点位调整</Text>
+                </View>
+
+                <View className="info-row">
+                  <Text className="manual-control-info">
+                    容错范围：{!isNaN(taskstartToleranceM) && taskstartToleranceM !== undefined
+                      ? (taskstartToleranceM * 100).toFixed(2)
+                      : '0.00'
+                    }厘米
+                  </Text>
+                  <Text className="manual-control-info">
+                    当前距离：{!isNaN(taskdistance) && taskdistance !== undefined
+                      ? (taskdistance * 100).toFixed(2)
+                      : '0.00'
+                    }厘米
+                  </Text>
+
+                </View>
+
+
+
+                <View className="msg-row">
+                  <Text className="manual-control-title"> {taskmsg} </Text>
+                </View>
+
+                <View className='vai-canvas'>
+
+                  <Canvas
+                    id="point-canvas"
+                    className='point-canvas'
+                    canvasId='point-canvas'
+
+                  />
+
+                </View>
+                {/* ===== 图例（原点/车辆位置）,（,{canvasParams.currentHeading}° ===== */}
+                <View className='legend-container'>
+                  <View className='legend-item'>
+                    <View className='legend-dot origin' />
+                    <Text className='legend-text'>原点位置</Text>
+                  </View>
+                  <View className='legend-item'>
+                    <View className='legend-dot vehicle' />
+                    <Text className='legend-text'>机器人位置</Text>
+                  </View>
+                  <View className='legend-item'>
+                    <View className='legend-dot' style={{ background: 'transparent', border: '2rpx solid rgba(34, 197, 94, 0.6)' }} />
+                    <Text className='legend-text'>容错范围</Text>
+                  </View>
+
+                </View>
+
+
+                <View className="info-row">
+                  <Text className="manual-control-info">
+                    {[
+                      // `容错范围：${canvasParams.taskstartToleranceM}厘米`,
+                      `原点经度：${canvasParams.taskStartLon}`,
+                      `原点纬度：${canvasParams.taskStartLat}`,
+                      `原点航向角：${canvasParams.originHeading}`
+
+                    ].join('\n')}
+                  </Text>
+                  <Text className="manual-control-info">
+                    {[
+                      // `当前距离：${canvasParams.taskdistance}厘米`,
+                      `机器人经度：${canvasParams.currentLon}`,
+                      `机器人纬度：${canvasParams.currentLat}`,
+                      `机器人航向角：${canvasParams.currentHeading}`
+
+                    ].join('\n')}
+                  </Text>
+                </View>
+
+              </View>
+
+              <View className="console-actions console-actions--primary">
+                {renderCommandButton('start', 'console-action-btn--start')}{/* 启动 */}
+                {renderCommandButton('stop', 'console-action-btn--stop')}{/* 停止 */}
+              </View>
+              <View className='accordion-card'>
+                <View className='accordion-item'>
+
+                  <View className='accordion-header' onClick={handleToggle}>
+                    <Text className='accordion-title'>具体参数</Text>
+                    <Text className={`arrow ${expanded ? 'up' : 'down'}`}>
+                      ▼
+                    </Text>
+                  </View>
+
+
+                  {expanded && (
+                    <View className='accordion-content'>
+                      {/* <View className='vehicle-info'>/ */}
+                      <View className='vehicle-title'>
+                        <Text>小车</Text>
+                      </View>
+
+                      {/* 本体 */}
+                      <View className='sections'>
+
+                        <View
+                          className='section-header'
+                          onClick={() => toggleSection('body')}
+                        >
+                          <Text className='section-title'>本体</Text>
+                          <Text className={`arrow ${expandedSections.body ? 'up' : 'down'}`}>▼</Text>
+                        </View>
+                        {expandedSections.body && (
+                          <View className='section-content'>
+                            <View className='attr-grid'>
+                              {vehicleData.body.attrs.reduce((rows, attr, index) => {
+                                if (index % 2 === 0) {
+                                  rows.push([attr]);
+                                } else {
+                                  rows[rows.length - 1].push(attr);
+                                }
+                                return rows;
+                              }, []).map((row, rowIdx) => (
+                                <View className='attr-row' key={rowIdx}>
+                                  {row.map((attr, idx) => (
+                                    <View className='attr-group' key={idx}>
+                                      <Text className='attr-label'>{attr.label}：</Text>
+                                      <Text className='attr-value'>{attr.value}</Text>
+                                    </View>
+                                  ))}
+                                  {row.length === 1 && <View className='attr-group-placeholder' />}
+                                </View>
+
+                              ))}
+                            </View>
+                          </View>
+
+
+                        )}
+                      </View>
+
+                      {/* 电池 */}
+                      <View className='sections'>
+                        <View
+                          className='section-header'
+                          onClick={() => toggleSection('battery')}
+                        >
+                          <Text className='section-title'>电池</Text>
+                          <Text className={`arrow ${expandedSections.battery ? 'up' : 'down'}`}>▼</Text>
+                        </View>
+                        {expandedSections.battery && (
+                          // <View className='section-content'>
+                          //   {vehicleData.battery.attrs.map((attr, idx) => (
+                          //     <View className='attr-row' key={idx}>
+                          //       <Text className='attr-label'>{attr.label}</Text>
+                          //       <Text className='attr-value'>{attr.value}</Text>
+                          //     </View>
+                          //   ))}
+                          // </View>
+
+                          <View className='section-content'>
+                            <View className='attr-grid'>
+                              {vehicleData.battery.attrs.reduce((rows, attr, index) => {
+                                if (index % 2 === 0) {
+                                  rows.push([attr]);
+                                } else {
+                                  rows[rows.length - 1].push(attr);
+                                }
+                                return rows;
+                              }, []).map((row, rowIdx) => (
+                                <View className='attr-row' key={rowIdx}>
+                                  {row.map((attr, idx) => (
+                                    <View className='attr-group' key={idx}>
+                                      <Text className='attr-label'>{attr.label}：</Text>
+                                      <Text className='attr-value'>{attr.value}</Text>
+                                    </View>
+                                  ))}
+                                  {row.length === 1 && <View className='attr-group-placeholder' />}
+                                </View>
+
+                              ))}
+                            </View>
+                          </View>
+
+
+
+                        )}
+                      </View>
+                      {/* 滚刷 */}
+                      <View className='sections'>
+                        <View className='section-header' onClick={() => toggleSection('brush')}>
+                          <Text className='section-title'>滚刷</Text>
+                          <Text className={`arrow ${expandedSections.brush ? 'up' : 'down'}`}>▼</Text>
+                        </View>
+                        {expandedSections.brush && (
+                          // <View className='section-content'>{renderAttrs(vehicleData.brush.attrs)}</View>
+                          <View className='section-content'>
+                            <View className='attr-grid'>
+                              {vehicleData.brush.attrs.reduce((rows, attr, index) => {
+                                if (index % 2 === 0) {
+                                  rows.push([attr]);
+                                } else {
+                                  rows[rows.length - 1].push(attr);
+                                }
+                                return rows;
+                              }, []).map((row, rowIdx) => (
+                                <View className='attr-row' key={rowIdx}>
+                                  {row.map((attr, idx) => (
+                                    <View className='attr-group' key={idx}>
+                                      <Text className='attr-label'>{attr.label}：</Text>
+                                      <Text className='attr-value'>{attr.value}</Text>
+                                    </View>
+                                  ))}
+                                  {row.length === 1 && <View className='attr-group-placeholder' />}
+                                </View>
+
+                              ))}
+                            </View>
+                          </View>
+
+
+                        )}
+
+
+
+
+
+                      </View>
+
+
+
+                      {/* 硬件（两级折叠） */}
+                      <View className='sections'>
+                        <View className='section-header' onClick={() => toggleSection('hardware')}>
+                          <Text className='section-title'>硬件</Text>
+                          <Text className={`arrow ${expandedSections.hardware ? 'up' : 'down'}`}>▼</Text>
+                        </View>
+                        {expandedSections.hardware && (
+                          <View className='hardware-children'>
+                            {/* 渲染硬件父级的 attrs */}
+                            {vehicleData.hardware.attrs && (
+                              <View className='section-content'>
+                                {renderAttrsGrid(vehicleData.hardware.attrs)}
+                              </View>
+                            )}
+
+                            {/* 渲染子级 */}
+                            {vehicleData.hardware.children.map(child => (
+                              <View className='child-section' key={child.key}>
+                                <View className='section-header child-header' onClick={() => toggleSection(child.key)}>
+                                  <Text className='section-title child-title'>{child.title}</Text>
+                                  <Text className={`arrow ${expandedSections[child.key] ? 'up' : 'down'}`}>▼</Text>
+                                </View>
+                                {expandedSections[child.key] && (
+                                  <View className='section-content child-content'>
+                                    {renderAttrsGrid(child.attrs)}
+                                  </View>
+                                )}
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                      {/* RTK */}
+                      <View className='sections'>
+                        <View className='section-header' onClick={() => toggleSection('rtk')}>
+                          <Text className='section-title'>RTK</Text>
+                          <Text className={`arrow ${expandedSections.rtk ? 'up' : 'down'}`}>▼</Text>
+                        </View>
+                        {expandedSections.rtk && (
+
+                          <View className='section-content'>
+                            <View className='attr-grid'>
+                              {vehicleData.rtk.attrs.reduce((rows, attr, index) => {
+                                if (index % 2 === 0) {
+                                  rows.push([attr]);
+                                } else {
+                                  rows[rows.length - 1].push(attr);
+                                }
+                                return rows;
+                              }, []).map((row, rowIdx) => (
+                                <View className='attr-row' key={rowIdx}>
+                                  {row.map((attr, idx) => (
+                                    <View className='attr-group' key={idx}>
+                                      <Text className='attr-label'>{attr.label}：</Text>
+                                      <Text className='attr-value'>{attr.value}</Text>
+                                    </View>
+                                  ))}
+                                  {row.length === 1 && <View className='attr-group-placeholder' />}
+                                </View>
+                              ))}
+                            </View>
+                          </View>
+
+
+                        )}
+
+
+
+
+
+                      </View>
+
+
+                      {/* ========== 光伏板（与小车平级） ========== */}
+                      <View className='vehicle-title'>
+                        <Text>光伏板</Text>
+                      </View>
+
+                      <View className='sections'>
+                        <View className='section-header' onClick={() => toggleSection('panel')}>
+                          <Text className='section-title'>属性</Text>
+                          <Text className={`arrow ${expandedSections.panel ? 'up' : 'down'}`}>▼</Text>
+                        </View>
+                        {expandedSections.panel && (
+                          <View className='section-content'>
+                            <View className='attr-grid'>
+                              {panelData.attrs.reduce((rows, attr, index) => {
+                                if (index % 2 === 0) {
+                                  rows.push([attr]);
+                                } else {
+                                  rows[rows.length - 1].push(attr);
+                                }
+                                return rows;
+                              }, []).map((row, rowIdx) => (
+                                <View className='attr-row' key={rowIdx}>
+                                  {row.map((attr, idx) => (
+                                    <View className='attr-group' key={idx}>
+                                      <Text className='attr-label'>{attr.label}：</Text>
+                                      <Text className='attr-value'>{attr.value}</Text>
+                                    </View>
+                                  ))}
+                                  {row.length === 1 && <View className='attr-group-placeholder' />}
+                                </View>
+
+                              ))}
+                            </View>
+                          </View>
+                        )}
+                      </View>
+
+
+
+
+                      {/* </View> */}
+
+
+
+
+
+                    </View>
+                  )}
+                </View>
+              </View>
+              <View className="manual-control-panel">
+                <View className="manual-control-header">
+                  <Text className="manual-control-title">手动控制</Text>
+                  <Text className="manual-control-subtitle">拖动摇杆实时控制，松手自动停止。</Text>
+                </View>
+
+                <View className="joystick-card">
+                  <View
+                    className={`joystick-surface ${joystickActive ? 'joystick-surface--active' : ''}`}
+                    onTouchStart={handleJoystickTouchStart}
+                    onTouchMove={handleJoystickTouchMove}
+                    onTouchEnd={resetJoystick}
+                    onTouchCancel={resetJoystick}
+                  >
+                    <View className="joystick-axis joystick-axis--x" />
+                    <View className="joystick-axis joystick-axis--y" />
+                    <View className="joystick-ring joystick-ring--outer" />
+                    <View className="joystick-ring joystick-ring--inner" />
+                    <View
+                      className={`joystick-knob ${joystickActive ? 'joystick-knob--active' : ''}`}
+                      style={joystickKnobStyle}
+                    >
+                      <Text className="joystick-knob-text">{joystickActive ? '控制' : '摇杆'}</Text>
+                    </View>
+                  </View>
+
+                  <View className="joystick-readout">
+                    <View className="joystick-readout-item">
+                      <Text className="joystick-readout-label">方向</Text>
+                      <Text className="joystick-readout-value">{joystickDirectionLabel}</Text>
+                    </View>
+                    <View className="joystick-readout-item">
+                      <Text className="joystick-readout-label">强度</Text>
+                      <Text className="joystick-readout-value">{joystickVector.power}%</Text>
+                    </View>
+                    <View className="joystick-readout-item">
+                      <Text className="joystick-readout-label">向量</Text>
+                      <Text className="joystick-readout-value">
+                        {joystickVector.x.toFixed(2)} / {joystickVector.y.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text className="joystick-status">{joystickStatus}</Text>
+                </View>
+
+                <View className="manual-control-pad">
+                  <View className="manual-control-spacer" />
+                  {renderCommandButton('forward', 'console-action-btn--manual')}
+                  <View className="manual-control-spacer" />
+                  {renderCommandButton('turnLeft', 'console-action-btn--rotate')}
+                  {renderCommandButton('stop', 'console-action-btn--pad-stop')}
+                  {renderCommandButton('turnRight', 'console-action-btn--rotate')}
+                  <View className="manual-control-spacer" />
+                  {renderCommandButton('backward', 'console-action-btn--manual')}
+                  <View className="manual-control-spacer" />
+                </View>
+              </View>
+            </View>
+          </View>
+        </>
+
       )
       }
 

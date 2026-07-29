@@ -5,7 +5,9 @@ export default {
     'pages/index/index',
     'pages/t-railcar/index',
     'pages/t-railcar/settings',
-    'pages/mqttDebug/index'
+    'pages/mqttDebug/index',
+    'pages/home/home',
+    'pages/map/index',
   ],
   window: {
     backgroundTextStyle: 'dark',
