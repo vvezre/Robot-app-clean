@@ -115,7 +115,17 @@ class Request {
       }
 
       if (response.statusCode !== 200) {
-        throw new Error(`HTTP ${response.statusCode}: ${response.errMsg || '请求失败'}`)
+        let errorMsg = `HTTP ${response.statusCode}`
+        if (response.statusCode === 504 || response.statusCode === 502) {
+            errorMsg = '服务器暂时不可用，请稍后重试'
+        } else if (response.statusCode === 404) {
+            errorMsg = '请求的资源不存在'
+        } else if (response.statusCode >= 500) {
+            errorMsg = '服务器内部错误，请稍后重试'
+        } else {
+            errorMsg = response.errMsg || `HTTP ${response.statusCode}`
+        }
+        throw new Error(errorMsg)
       }
 
       // 返回数据

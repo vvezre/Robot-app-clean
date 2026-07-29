@@ -15,8 +15,8 @@ interface PointData {
     lon: number
 }
 
-// const productId = VehicleService.getCurrentProductId()
-const productId = "999999"
+const productId = VehicleService.getCurrentProductId()
+// const productId = "999999"
 interface CommandResponse {
     success: boolean
     message: string
@@ -259,32 +259,36 @@ const MapPage = () => {
         }
     }, [])
 
-    const handleSampleRegion = useCallback(async () => {
-        return await tRailcarService.movement.sample_modeling_point(productId)
+    const handleSampleRegion = useCallback(async (): Promise<CommandResponse> => {
+        const response = await tRailcarService.movement.sample_modeling_point(productId)
+        if (!response.success) throw new Error(response.message || '采样区域点失败')
+        return response
     }, [])
 
-    const handleSampleConnect = useCallback(async () => {
-        return await tRailcarService.movement.sample_modeling_link_point(productId)
+    const handleSampleConnect = useCallback(async (): Promise<CommandResponse> => {
+        const response = await tRailcarService.movement.sample_modeling_link_point(productId)
+        if (!response.success) throw new Error(response.message || '采样连接点失败')
+        return response
     }, [])
 
     const handleDeleteRegion = useCallback(async (id: string) => {
         const response = await tRailcarService.movement.delete_modeling_point(productId, id)
-        if (!response.success) throw new Error(response.message || '删除失败')
+        if (!response.success) throw new Error(response.message || '删除区域点失败')
     }, [])
 
     const handleDeleteConnect = useCallback(async (id: string) => {
         const response = await tRailcarService.movement.delete_link_point(productId, id)
-        if (!response.success) throw new Error(response.message || '删除失败')
+        if (!response.success) throw new Error(response.message || '删除连接点失败')
     }, [])
 
     const handleClearRegion = useCallback(async () => {
         const response = await tRailcarService.movement.clear_area_point(productId)
-        if (!response.success) throw new Error(response.message || '清空失败')
+        if (!response.success) throw new Error(response.message || '清空区域点失败')
     }, [])
 
     const handleClearConnect = useCallback(async () => {
         const response = await tRailcarService.movement.clear_link_point(productId)
-        if (!response.success) throw new Error(response.message || '清空失败')
+        if (!response.success) throw new Error(response.message || '清空连接点失败')
     }, [])
 
     const handleHelpClick = () => {

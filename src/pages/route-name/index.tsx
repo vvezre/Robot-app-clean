@@ -6,8 +6,8 @@ import VehicleService from '../../services/vehicleService'
 import tRailcarService from '../../services/tRailcarService'
 const RouteNamePage = () => {
   const [routeName, setRouteName] = useState('')
-  // const productId = VehicleService.getCurrentProductId()
-  const productId = "999999"
+  const productId = VehicleService.getCurrentProductId()
+  // const productId = "999999"
   const handleNameChange = (e: any) => {
     setRouteName(e.detail.value)
   }

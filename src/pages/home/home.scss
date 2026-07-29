@@ -82,9 +82,11 @@ $sky-600: $cyan-500;
 
 
 .home-container {
-    min-height: 100vh;
+    height: 100vh;
     background: #f5f6fa;
-
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 // ===== 顶部导航栏 =====
@@ -310,18 +312,21 @@ $sky-600: $cyan-500;
 // ===== 内容区域 =====
 .content {
     padding: 16px;
-    background: transparent; // ✅ 透明
+    background: transparent;
+    flex: 1;
+    overflow: hidden;
 
     // ===== 路线图区域 =====
     .path-demo-page {
-        min-height: 100vh;
-        background: transparent; // ✅ 透明
+        background: transparent;
         padding: 2rpx;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 10rpx;
         position: relative;
+        height: 100%;
+        overflow: hidden;
 
 
         // ===== 横向图例（放在画布下方） =====
@@ -413,13 +418,7 @@ $sky-600: $cyan-500;
 
         // ===== Canvas 容器 =====
         .canvas-wrapper {
-            // width: 100%;
-            // max-width: 750rpx;
-            // display: flex;
-            // justify-content: center;
-            // align-items: center;
-            // margin-top: 10rpx;
-            position: relative; // ✅ 添加相对定位
+            position: relative;
             width: 100%;
             max-width: 750rpx;
             display: flex;
@@ -429,10 +428,9 @@ $sky-600: $cyan-500;
 
             .path-canvas {
                 width: 100%;
-                height: auto;
-                aspect-ratio: 700 / 500;
+                height: 600px;
                 border-radius: 24rpx;
-                background: #0f3460;
+                background: #ffffff;
             }
 
             .empty-path-overlay {
@@ -448,8 +446,8 @@ $sky-600: $cyan-500;
                 padding: 40px 150px;
                 gap: 8px;
                 pointer-events: none;
-                border-radius: 24rpx; // ✅ 和 canvas 圆角一致
-                background: #0f3460;
+                border-radius: 24rpx;
+                background: rgba(255, 255, 255, 0.9);
 
                 .empty-path-icon {
                     font-size: 48px;
@@ -481,7 +479,7 @@ $sky-600: $cyan-500;
         justify-content: space-between; // ✅ 均匀分布
         padding: 8px 0;
         position: fixed; // ✅ 固定在底部
-        bottom: 276px+200px; // ✅ 距离底部按钮 5px（按钮高度 56px + 间距 16px + 5px）
+        bottom: 276px+220px; // ✅ 距离底部按钮 5px（按钮高度 56px + 间距 16px + 5px）
         // left: 16px;
         // right: 16px;
 
@@ -593,6 +591,48 @@ $sky-600: $cyan-500;
                     .path-empty-text {
                         font-size: 28px;
                         color: #8c95a6;
+                    }
+                }
+
+                .path-loading-item {
+                    padding: 16px;
+                    text-align: center;
+                    background: #f5f6fa;
+                    border-radius: 8px;
+                    width: 100%;
+
+                    .path-loading-text {
+                        font-size: 28px;
+                        color: #4a6cf7;
+                    }
+                }
+
+                .path-error-item {
+                    padding: 16px;
+                    text-align: center;
+                    background: #fff4f4;
+                    border: 2px dashed #ff6b6b;
+                    border-radius: 8px;
+                    width: 100%;
+                    cursor: pointer;
+
+                    .path-error-icon {
+                        font-size: 40px;
+                        display: block;
+                        margin-bottom: 8px;
+                    }
+
+                    .path-error-text {
+                        font-size: 26px;
+                        color: #ff6b6b;
+                        display: block;
+                        margin-bottom: 8px;
+                    }
+
+                    .path-error-retry {
+                        font-size: 24px;
+                        color: #4a6cf7;
+                        text-decoration: underline;
                     }
                 }
 

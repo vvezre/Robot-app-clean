@@ -183,6 +183,28 @@ export interface ALLModelingPointsResponse {
 
 
 }
+
+/**
+ * 已保存路线信息
+ */
+export interface SavedRoute {
+  taskName: string
+  modelId: string
+  current: boolean
+  areaPoints: ModelingPoint[]
+  linkPoints: ModelingPoint[]
+  pathPoints: ModelingPoint[]
+}
+
+/**
+ * 已保存路线列表载荷
+ */
+export interface SavedRoutesPayload {
+  productId: string
+  serialNumber: string
+  currentTaskName: string | null
+  routes: SavedRoute[]
+}
 /**
  * 发送T型号小车控制命令（统一接口）
  */
@@ -602,8 +624,8 @@ export const tRailcarTask = {
     return await request.get<TRailcarTaskPathResponse>(`/api/t-railcar/task-path/${productId}`)
   },
 
-  fetchTaskOptions: async (productId: string): Promise<TRailcarTaskOptionsPayload | null> => {
-    return await request.get<TRailcarTaskOptionsResponse>(`/api/t-railcar/tasks/${productId}`)
+  fetchTaskOptions: async (productId: string): Promise<SavedRoutesPayload | null> => {
+    return await request.get<SavedRoutesPayload | null>(`/api/t-railcar/saved-routes/${productId}`)
   },
 
   setCurrentTask: async (productId: string, taskName: string): Promise<TRailcarSetCurrentTaskResponse> => {

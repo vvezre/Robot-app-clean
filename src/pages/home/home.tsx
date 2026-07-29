@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { View, Button, Input, Text, Picker, ScrollView } from '@tarojs/components'
+import { View, Button, Input, Text, Picker, ScrollView, Canvas } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Battery, Back, Home, Settings, Send, Refresh, ChevronRight, Bell } from '../../components/Icons'
 import RobotModel from '../../components/RobotModel'
@@ -30,9 +30,24 @@ interface Robot {
     runTimeTotal: number//运行时间
     walkSpeed: number//行走速度
 }
+interface PointData {
+    id: string
+    name: string
+    sequence: number
+    x: number
+    y: number
+    lat: number
+    lon: number
+}
+
 interface Route {
     id: number
-    name: string //"路线名",
+    name: string
+    modelId?: string
+    current?: boolean
+    areaPoints?: PointData[]
+    linkPoints?: PointData[]
+    pathPoints?: PointData[]
 }
 interface State {
     robots: Robot[]
@@ -73,7 +88,7 @@ export default function Index() {
     const currentPageRef = useRef<'scan' | 'home'>('home')
     const [currentPage, setCurrentPage] = useState<'scan' | 'home'>('home')
     const [scannedDevice, setScannedDevice] = useState<QRCodeData | null>(null)
-    // const [productId, setProductId] = useState('1250001')
+    const [productId, setProductId] = vehicleService.getCurrentProductId()
     // const [serialNumber, setSerialNumber] = useState('-T01250001')
     // 当前设备号
     const serialNumber = Taro.getStorageSync('currentSerialNumber')
@@ -84,11 +99,14 @@ export default function Index() {
     const [speed, setSpeed] = useState<number>(10);
     const [routes, setRoutes] = useState<Route[]>([])
     const [selectedRouteIndex, setSelectedRouteIndex] = useState(0)
+    const [routesLoading, setRoutesLoading] = useState(false)
+    const [routesError, setRoutesError] = useState<string | null>(null)
     // Canvas 相关
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
     const isCanvasReady = useRef<boolean>(false);
     const isFirstDraw = useRef<boolean>(true);
+    const canvasIdRef = useRef('home-route-canvas')
 
     // 轨迹数据
     const trailRef = useRef<Point[]>([PATH_POINTS[0]]);
@@ -203,6 +221,7 @@ export default function Index() {
                 setCurrentPage('home')
 
             } else {
+
                 setCurrentRobot(robotList[0] || null)
                 // 自动获取第一个设备的 shadow
                 if (robotList[0]) {
@@ -245,34 +264,52 @@ export default function Index() {
 
     // ========== 获取路线列表 ==========
     const fetchTaskList = useCallback(async () => {
+        setRoutesLoading(true)
+        setRoutesError(null)
         try {
             const productId = vehicleService.getCurrentProductId()
             if (!productId) {
                 console.log('[路线列表] 无productId')
+                setRoutesLoading(false)
                 return
             }
 
             const res = await tRailcarService.task.fetchTaskOptions(productId)
             console.log('[路线列表]', res)
 
-            if (res && res.taskNames) {
-                const routeList: Route[] = res.taskNames.map((name, index) => ({
+            if (res && res.routes) {
+                const routeList: Route[] = res.routes.map((route, index) => ({
                     id: index + 1,
-                    name: name,
+                    name: route.taskName,
+                    modelId: route.modelId,
+                    current: route.current,
+                    areaPoints: route.areaPoints || [],
+                    linkPoints: route.linkPoints || [],
+                    pathPoints: route.pathPoints || [],
                 }))
                 setRoutes(routeList)
 
-                if (res.currentTaskName) {
-                    const currentIndex = res.taskNames.findIndex(name => name === res.currentTaskName)
-                    if (currentIndex >= 0) {
-                        setSelectedRouteIndex(currentIndex)
+                // 自动选中当前路线
+                const currentIndex = routeList.findIndex(r => r.current)
+                if (currentIndex >= 0) {
+                    setSelectedRouteIndex(currentIndex)
+                } else if (res.currentTaskName) {
+                    const taskNameIndex = routeList.findIndex(r => r.name === res.currentTaskName)
+                    if (taskNameIndex >= 0) {
+                        setSelectedRouteIndex(taskNameIndex)
                     }
                 } else if (routeList.length > 0) {
                     setSelectedRouteIndex(0)
                 }
+            } else {
+                setRoutes([])
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('[路线列表] 获取失败:', error)
+            setRoutesError(error?.message || '加载失败，请重试')
+            setRoutes([])
+        } finally {
+            setRoutesLoading(false)
         }
     }, [])
 
@@ -309,6 +346,43 @@ export default function Index() {
             default: return '#d9d9d9'
         }
     }
+
+    // 建图 - 发送开始建模信号
+    const handleBuildMap = useCallback(async () => {
+        const productId = vehicleService.getCurrentProductId()
+        if (!productId) {
+            Taro.showToast({ title: '无设备信息', icon: 'none' })
+            return
+        }
+
+        Taro.showLoading({ title: '正在启动建模...' })
+        try {
+            const res = await tRailcarService.sendCommand({
+                productId,
+                command: 'start_modeling',
+                params: {},
+            })
+            console.log('[start_modeling]', res)
+            Taro.hideLoading()
+
+            if (res.success) {
+                Taro.navigateTo({ url: '/pages/map/index' })
+            } else {
+                Taro.showToast({
+                    title: res.message || '启动建模失败',
+                    icon: 'none',
+                })
+            }
+        } catch (error: any) {
+            Taro.hideLoading()
+            console.error('[start_modeling] 失败:', error)
+            const errorMsg = error?.message || (typeof error === 'string' ? error : '启动建模失败')
+            Taro.showToast({
+                title: String(errorMsg),
+                icon: 'none',
+            })
+        }
+    }, [])
     // ========== 开始清洁按钮状态 ==========
     const getButtonState = useMemo(() => {
         // 无设备
@@ -405,6 +479,157 @@ export default function Index() {
     const toggleShowPath = useCallback(() => {
         setShowPath((prev) => !prev);
     }, []);
+
+    // 绘制路线到 Canvas
+    const drawRouteOnCanvas = useCallback((route: Route | null, showPlanningPath: boolean) => {
+        const CANVAS_WIDTH = 680
+        const CANVAS_HEIGHT = 480
+        const PADDING = 40
+
+        const ctx = Taro.createCanvasContext(canvasIdRef.current)
+
+        ctx.setFillStyle('#ffffff')
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+
+        if (!route || (!route.areaPoints?.length && !route.pathPoints?.length)) {
+            ctx.draw()
+            return
+        }
+
+        const areaPoints = route.areaPoints || []
+        const linkPoints = route.linkPoints || []
+        const pathPoints = route.pathPoints || []
+        const allPoints = [...areaPoints, ...linkPoints, ...pathPoints]
+
+        if (allPoints.length === 0) {
+            ctx.draw()
+            return
+        }
+
+        const xs = allPoints.map(p => p.x)
+        const ys = allPoints.map(p => p.y)
+        const maxX = Math.max(...xs, 100)
+        const maxY = Math.max(...ys, 100)
+
+        const scaleX = (CANVAS_WIDTH - PADDING * 2) / (maxX || 1)
+        const scaleY = (CANVAS_HEIGHT - PADDING * 2) / (maxY || 1)
+        const scale = Math.min(scaleX, scaleY)
+
+        const project = (x: number, y: number) => ({
+            x: PADDING + x * scale,
+            y: PADDING + y * scale,
+        })
+
+        // 绘制网格
+        ctx.setStrokeStyle('#f0f0f0')
+        ctx.setLineWidth(1)
+        const gridSize = 50 * scale
+        for (let i = 0; i <= CANVAS_WIDTH; i += gridSize) {
+            ctx.beginPath()
+            ctx.moveTo(i, 0)
+            ctx.lineTo(i, CANVAS_HEIGHT)
+            ctx.stroke()
+        }
+        for (let i = 0; i <= CANVAS_HEIGHT; i += gridSize) {
+            ctx.beginPath()
+            ctx.moveTo(0, i)
+            ctx.lineTo(CANVAS_WIDTH, i)
+            ctx.stroke()
+        }
+
+        // 绘制区域点和连接点（虚线）
+        const mergedAreaPoints = [...areaPoints, ...linkPoints]
+        if (mergedAreaPoints.length > 0) {
+            const sortedArea = [...mergedAreaPoints].sort((a, b) => a.sequence - b.sequence)
+
+            ctx.setStrokeStyle('#cccccc')
+            ctx.setLineWidth(2)
+            // ctx.setLineDash([5, 5])
+            ctx.beginPath()
+            const firstArea = project(sortedArea[0].x, sortedArea[0].y)
+            ctx.moveTo(firstArea.x, firstArea.y)
+            for (let i = 1; i < sortedArea.length; i++) {
+                const p = project(sortedArea[i].x, sortedArea[i].y)
+                ctx.lineTo(p.x, p.y)
+            }
+            if (sortedArea.length > 2) {
+                ctx.closePath()
+            }
+            ctx.stroke()
+            // ctx.setLineDash([])
+
+            if (sortedArea.length > 2) {
+                ctx.setFillStyle('rgba(79, 161, 228, 0.15)')
+                ctx.fill()
+            }
+
+            sortedArea.forEach((point) => {
+                const p = project(point.x, point.y)
+                ctx.beginPath()
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2)
+                ctx.setFillStyle('#999999')
+                ctx.fill()
+                ctx.setStrokeStyle('#ffffff')
+                ctx.setLineWidth(2)
+                ctx.stroke()
+            })
+        }
+
+        // 绘制路径点（虚线）
+        if (showPlanningPath && pathPoints.length > 0) {
+            const sortedPath = [...pathPoints].sort((a, b) => a.sequence - b.sequence)
+
+            ctx.setStrokeStyle('#4a6cf7')
+            ctx.setLineWidth(3)
+            // ctx.setLineDash([8, 4])
+            ctx.setLineCap('round')
+            ctx.setLineJoin('round')
+            ctx.beginPath()
+            const firstPath = project(sortedPath[0].x, sortedPath[0].y)
+            ctx.moveTo(firstPath.x, firstPath.y)
+            for (let i = 1; i < sortedPath.length; i++) {
+                const p = project(sortedPath[i].x, sortedPath[i].y)
+                ctx.lineTo(p.x, p.y)
+            }
+            ctx.stroke()
+            // ctx.setLineDash([])
+
+            // 跳过第一个点（原点），不显示
+            sortedPath.forEach((point, index) => {
+                if (index === 0) return  // 跳过原点
+
+                const p = project(point.x, point.y)
+                ctx.beginPath()
+                ctx.arc(p.x, p.y, 6, 0, Math.PI * 2)
+                ctx.setFillStyle('#4a6cf7')
+                ctx.fill()
+                ctx.setStrokeStyle('#ffffff')
+                ctx.setLineWidth(2)
+                ctx.stroke()
+
+                ctx.setFillStyle('#ffffff')
+                ctx.setFontSize(10)
+                ctx.setTextAlign('center')
+                ctx.setTextBaseline('middle')
+                ctx.fillText(`${index + 1}`, p.x, p.y)
+            })
+        }
+
+        ctx.draw()
+    }, [])
+
+    // 当选中路线变化时重新绘制
+    useEffect(() => {
+        if (routes.length === 0) {
+            const ctx = Taro.createCanvasContext(canvasIdRef.current)
+            ctx.setFillStyle('#ffffff')
+            ctx.fillRect(0, 0, 680, 480)
+            ctx.draw()
+            return
+        }
+        const selectedRoute = routes[selectedRouteIndex]
+        drawRouteOnCanvas(selectedRoute || null, showPath)
+    }, [routes, selectedRouteIndex, showPath, drawRouteOnCanvas])
 
     // 页面初始化
     useEffect(() => {
@@ -711,18 +936,15 @@ export default function Index() {
                             {/* ===== Canvas ===== */}
                             <View className="canvas-wrapper">
 
-                                <canvas
-                                    id="pathCanvas"
-                                    // @ts-ignore
-                                    type="2d"
+                                <Canvas
+                                    id={canvasIdRef.current}
+                                    canvas-id={canvasIdRef.current}
                                     className="path-canvas"
                                 />
                                 {/* 无路线时显示文字覆盖层 */}
                                 {routes.length === 0 && (
                                     <View className='empty-path-overlay'>
-                                        {/* <Text className='empty-path-icon'>🗺️</Text> */}
                                         <Text className='empty-path-title'>请先点击底部的「建图」，在地图上标记清扫区域，再开始作业。</Text>
-                                        {/* <Text className='empty-path-desc'>请添加设备后查看路线</Text> */}
                                     </View>
                                 )}
                             </View>
@@ -797,7 +1019,7 @@ export default function Index() {
                                         <Text className='path-header-title'>我的路线图</Text>
                                     </View>
                                     <View className='path-header-right'>
-                                        <View className='build-map-btn' onClick={() => Taro.navigateTo({ url: '/pages/map/index' })}>
+                                        <View className='build-map-btn' onClick={handleBuildMap}>
                                             <Text className='build-map-text'>建图</Text>
                                         </View>
                                     </View>
@@ -810,7 +1032,17 @@ export default function Index() {
                                     showScrollbar={false}
                                 >
                                     <View className='path-list'>
-                                        {routes.length === 0 ? (
+                                        {routesLoading ? (
+                                            <View className='path-loading-item'>
+                                                <Text className='path-loading-text'>加载中...</Text>
+                                            </View>
+                                        ) : routesError ? (
+                                            <View className='path-error-item' onClick={fetchTaskList}>
+                                                <Text className='path-error-icon'>⚠️</Text>
+                                                <Text className='path-error-text'>{routesError}</Text>
+                                                <Text className='path-error-retry'>点击重试</Text>
+                                            </View>
+                                        ) : routes.length === 0 ? (
                                             <View className='path-empty-item'>
                                                 <Text className='path-empty-text'>暂无路线</Text>
                                             </View>
