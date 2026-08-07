@@ -23,16 +23,43 @@ const RouteNamePage = () => {
     console.log('保存路线:', routeName)
     Taro.showLoading({ title: '保存中...' })
     try {
-      const areaPoints = Taro.getStorageSync('areaPoints')
-      const pathPoints = Taro.getStorageSync('pathPoints')
-      // tRailcarService.movement.sample_modeling_point(productId)
       console.log('保存路径id:', productId)
-      const response = await tRailcarService.movement.save_modeling_task(productId, routeName)
-      console.log('保存路径名称:', response)
-      if (!response.success) throw new Error(response.message || '保存失败')
+
+      // 1. 发送保存命令
+      const response: any = await Promise.race([
+        tRailcarService.movement.save_modeling_task(productId, routeName),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('请求超时，请检查网络连接')), 12000)
+        )
+      ])
+      console.log('保存命令响应:', response)
+
+      if (!response || typeof response !== 'object') {
+        throw new Error('响应数据异常')
+      }
+
+      if (response.success === false) {
+        throw new Error(response.message || '保存失败')
+      }
+
+      const commandId = response.commandId
+      if (!commandId) {
+        throw new Error('命令发送成功但未获取到命令ID')
+      }
+
+      // 2. 轮询命令状态
+      console.log('开始轮询命令状态, commandId:', commandId)
+      const status: any = await tRailcarService.pollCommandStatus(commandId, 15, 1000)
+      console.log('命令状态:', status)
+
       Taro.hideLoading()
 
-      if (response.success) {
+      // 3. 判断保存结果
+      if (status && (status.status === 'SUCCEEDED' || status.terminal === true)) {
+        // 保存成功
+        const savedData = status.detail?.result?.data
+        console.log('保存成功，返回数据:', savedData)
+
         Taro.showToast({
           title: '保存成功',
           icon: 'success',
@@ -43,29 +70,21 @@ const RouteNamePage = () => {
           Taro.navigateTo({
             url: '/pages/home/home',
           })
-
         }, 1500)
+      } else if (status && status.status === 'FAILED') {
+        throw new Error(status.message || '保存失败')
       } else {
-        Taro.showToast({
-          title: response?.message || '保存失败',
-          icon: 'none',
-        })
+        throw new Error('保存超时，请重试')
       }
-    } catch (error) {
+    } catch (error: any) {
       Taro.hideLoading()
       console.error('保存路线失败:', error)
 
       Taro.showToast({
-        title: '保存成功',
-        icon: 'success',
-        duration: 1500,
+        title: error?.message || '保存失败，请重试',
+        icon: 'none',
+        duration: 2000,
       })
-
-      setTimeout(() => {
-        Taro.switchTab({
-          url: '/pages/home/home',
-        })
-      }, 1500)
     }
   }
 

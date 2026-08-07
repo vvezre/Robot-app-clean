@@ -213,6 +213,88 @@ export const sendCommand = async (
   return await request.post<TRailcarControlResponse>('/api/t-railcar/command', commandRequest)
 }
 
+// 命令状态响应接口
+export interface CommandStatusResponse {
+  exists: boolean
+  commandId: string
+  deviceId: string
+  action: string
+  status: string
+  message: string
+  terminal: boolean
+  detail?: {
+    result?: {
+      data?: {
+        areaNumber?: number
+        groupCount?: number
+        modelId?: string
+        groupId?: string
+        previousGroupId?: string
+        previousAreaNumber?: number
+        linkId?: string
+        [key: string]: any
+      }
+      [key: string]: any
+    }
+    [key: string]: any
+  }
+}
+
+/**
+ * 查询命令状态
+ * @param commandId 命令ID
+ */
+export const getCommandStatus = async (commandId: string): Promise<CommandStatusResponse> => {
+  return await request.get<CommandStatusResponse>(`/api/command-status/${commandId}`)
+}
+
+/**
+ * 轮询命令状态
+ * @param commandId 命令ID
+ * @param maxAttempts 最大轮询次数
+ * @param interval 轮询间隔（毫秒）
+ */
+export const pollCommandStatus = async (
+  commandId: string,
+  maxAttempts: number = 10,
+  interval: number = 1000
+): Promise<CommandStatusResponse> => {
+  let lastStatus: CommandStatusResponse | null = null
+
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const status = await getCommandStatus(commandId) as any
+      console.log(`[pollCommandStatus] 第${i + 1}次查询:`, status)
+
+      // 保存最后一次状态
+      if (status) {
+        lastStatus = status
+      }
+
+      // terminal 为 true 或 status 为终态时返回
+      if (status && (status.terminal === true || status.status === 'SUCCEEDED' || status.status === 'FAILED')) {
+        return status
+      }
+    } catch (error) {
+      console.warn(`[pollCommandStatus] 第${i + 1}次查询失败:`, error)
+      // 如果查询失败，继续尝试
+    }
+
+    // 等待下一次查询
+    if (i < maxAttempts - 1) {
+      await new Promise(resolve => setTimeout(resolve, interval))
+    }
+  }
+
+  // 如果达到最大尝试次数，返回最后一次状态或抛出错误
+  if (lastStatus) {
+    console.warn('[pollCommandStatus] 达到最大轮询次数，返回最后状态:', lastStatus)
+    return lastStatus
+  }
+
+  throw new Error('命令状态查询超时')
+}
+
 /**
  * 基础运动控制接口
  */
@@ -256,7 +338,7 @@ export const tRailcarMovement = {
    * @param productId 产品ID
    * @param angle 角度（默认90度）
    */
-  turnLeft: async (productId: string, angle: number = 90) => {
+  turnLeft: async (productId: string, angle: number) => {
     return await sendCommand({
       productId,
       command: 'turn_left',
@@ -270,7 +352,7 @@ export const tRailcarMovement = {
    * @param productId 产品ID
    * @param angle 角度（默认90度）
    */
-  turnRight: async (productId: string, angle: number = 90) => {
+  turnRight: async (productId: string, angle: number) => {
     return await sendCommand({
       productId,
       command: 'turn_right',
@@ -298,6 +380,18 @@ export const tRailcarMovement = {
     return await sendCommand({
       productId,
       command: 'parking',
+    })
+  },
+
+  /**
+   * 自动清扫
+   * @param productId 产品ID
+   */
+  auto_drive: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'auto_drive',
+      params: {}
     })
   },
 
@@ -358,6 +452,28 @@ export const tRailcarMovement = {
     })
   },
   /**
+   * 新增区域块（结束当前区域，开始新区域）
+   * @param productId 产品ID
+   */
+  new_modeling_area: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'new_modeling_area',
+      params: {}
+    })
+  },
+  /**
+    * 开始建图（清空后重新开始）
+    * @param productId 产品ID
+    */
+  start_modeling: async (productId: string) => {
+    return await sendCommand({
+      productId,
+      command: 'start_modeling',
+      params: {}
+    })
+  },
+  /**
     * 保存路径名称
     * @param productId 产品ID
     */
@@ -396,31 +512,6 @@ export const tRailcarMovement = {
       params: {}
     })
   },
-  // /**
-  //  * 撤销区域点
-  //  * @param productId 产品ID
-  //  */
-  // undo_area_point: async (productId: string) => {
-  //   return await sendCommand({
-  //     productId,
-  //     command: 'undo_modeling_point',
-  //     params: { "pointType": "area" }
-  //   })
-  // },
-
-
-
-  // /**
-  //  * 撤销连接点
-  //  * @param productId 产品ID
-  //  */
-  // undo_link_point: async (productId: string) => {
-  //   return await sendCommand({
-  //     productId,
-  //     command: 'undo_modeling_point',
-  //     params: { "pointType": "link" }
-  //   })
-  // },
 
 
 
@@ -625,7 +716,7 @@ export const tRailcarTask = {
   },
 
   fetchTaskOptions: async (productId: string): Promise<SavedRoutesPayload | null> => {
-    return await request.get<SavedRoutesPayload | null>(`/api/t-railcar/saved-routes/${productId}`)
+    return await request.get<SavedRoutesPayload | null>(`/api/t-railcar/saved-routes/${productId}`, undefined, { silent: true })
   },
 
   setCurrentTask: async (productId: string, taskName: string): Promise<TRailcarSetCurrentTaskResponse> => {
@@ -720,6 +811,8 @@ export const tRailcarModeling = {
 // 默认导出
 export default {
   sendCommand,
+  getCommandStatus,
+  pollCommandStatus,
   movement: tRailcarMovement,
   joystick: tRailcarJoystick,
   advanced: tRailcarAdvanced,

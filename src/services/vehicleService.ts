@@ -178,7 +178,7 @@ class VehicleService {
     if (!this.currentSerialNumber) {
       this.currentSerialNumber = Taro.getStorageSync('currentSerialNumber') || null
     }
-    console.log('[DeviceService] 获取 serialNumber:', this.currentSerialNumber)
+    // console.log('[DeviceService] 获取 serialNumber:', this.currentSerialNumber)
     return this.currentSerialNumber
   }
 
@@ -195,7 +195,7 @@ class VehicleService {
     if (!this.currentProductId) {
       this.currentProductId = Taro.getStorageSync('currentProductId') || null
     }
-    console.log('[DeviceService] 获取 productId:', this.currentProductId)
+    // console.log('[DeviceService] 获取 productId:', this.currentProductId)
     return this.currentProductId
   }
 

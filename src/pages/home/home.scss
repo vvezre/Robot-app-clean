@@ -89,6 +89,77 @@ $sky-600: $cyan-500;
     flex-direction: column;
 }
 
+// ===== 加载状态 =====
+.loading-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+
+    &__spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid #e0e6ed;
+        border-top-color: #4a6cf7;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    &__text {
+        font-size: 28px;
+        color: #8c95a6;
+        letter-spacing: 2px;
+    }
+
+    &__dots {
+        display: flex;
+        gap: 8px;
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4a6cf7;
+            animation: bounce 1.4s ease-in-out infinite;
+
+            &:nth-child(1) {
+                animation-delay: 0s;
+            }
+
+            &:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+
+            &:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+        }
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 // ===== 顶部导航栏 =====
 .header {
     display: flex;
@@ -168,6 +239,7 @@ $sky-600: $cyan-500;
         // ===== 下拉菜单 =====
         .dropdown-wrapper {
             position: relative;
+            z-index: 9999;
 
             .dropdown-trigger {
                 width: 136px;
@@ -195,16 +267,59 @@ $sky-600: $cyan-500;
                 position: absolute;
                 top: calc(100% + 8px);
                 right: 0;
-                min-width: 240px;
-                max-width: 320px;
+                min-width: 480px;
+                max-width: 560px;
                 background: #ffffff;
                 border-radius: 12px;
                 box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
                 overflow: hidden;
                 animation: slideDown 0.25s ease-out;
+                z-index: 999;
+
+                .dropdown-models {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    padding: 12px 14px;
+                    border-bottom: 1px solid #f0f0f0;
+                    background: #fafbfc;
+
+                    .dropdown-model-item {
+                        padding: 10px 18px;
+                        border-radius: 20px;
+                        background: #f0f2f5;
+                        border: 1px solid #e0e6ed;
+                        transition: all 0.15s;
+                        min-height: 48px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+
+                        &:active {
+                            opacity: 0.7;
+                            transform: scale(0.96);
+                        }
+                    }
+
+                    .dropdown-model-item--active {
+                        background: #4a6cf7;
+                        border-color: #4a6cf7;
+                    }
+
+                    .dropdown-model-item--active .dropdown-model-text {
+                        color: #ffffff;
+                    }
+
+                    .dropdown-model-text {
+                        font-size: 28px;
+                        color: #6b7280;
+                        white-space: nowrap;
+                        font-weight: 500;
+                    }
+                }
 
                 .dropdown-list {
-                    max-height: 520px;
+                    max-height: 400px;
                     overflow-y: auto;
 
                     .dropdown-item {
@@ -215,7 +330,7 @@ $sky-600: $cyan-500;
                         cursor: pointer;
                         transition: background 0.15s;
                         border-bottom: 1px solid #f5f6fa;
-                        min-height: 60px; // ✅ 设置最小高度
+                        min-height: 60px;
 
                         &:last-child {
                             border-bottom: none;
@@ -248,8 +363,6 @@ $sky-600: $cyan-500;
                                 font-weight: 500;
                                 white-space: nowrap;
                             }
-
-
                         }
 
                         .item-check {
@@ -382,8 +495,9 @@ $sky-600: $cyan-500;
                     flex-shrink: 0;
 
                     &.robot {
-                        background: radial-gradient(circle at 35% 35%, #7ae9ff, #22d3ee);
-                        box-shadow: 0 0 24rpx rgba(34, 211, 238, 0.7);
+                        background: radial-gradient(circle at 35% 35%, #00ff66, #00ff66);
+                        box-shadow: 0 0 24rpx rgba(0, 255, 102, 0.2);
+
                     }
                 }
 
@@ -392,12 +506,12 @@ $sky-600: $cyan-500;
                     height: 6rpx;
                     border-radius: 3rpx;
                     flex-shrink: 0;
-                    background: linear-gradient(to right, #22d3ee, #7ae9ff);
-                    box-shadow: 0 0 16rpx rgba(34, 211, 238, 0.5);
+                    background: linear-gradient(to right, #00ff66cc, #00ff66);
+                    box-shadow: 0 0 16rpx rgba(0, 255, 102, 0.2);
 
                     &.dashed {
                         background: transparent;
-                        border-top: 4rpx dashed rgba(34, 211, 238, 0.5);
+                        border-top: 4rpx dashed #4a90e2;
                         height: 0;
                     }
                 }
@@ -419,18 +533,27 @@ $sky-600: $cyan-500;
         // ===== Canvas 容器 =====
         .canvas-wrapper {
             position: relative;
-            width: 100%;
-            max-width: 750rpx;
+            width: 680rpx;
             display: flex;
             justify-content: center;
             align-items: center;
             margin-top: 10rpx;
+            transition: opacity 0.2s ease;
+
+            // 下拉菜单打开时的占位背景
+            .canvas-placeholder-bg {
+                width: 100%;
+                height: 100%;
+                border-radius: 24rpx;
+                background: #f5f7fa;
+            }
 
             .path-canvas {
                 width: 100%;
-                height: 600px;
+                height: 100%;
                 border-radius: 24rpx;
                 background: #ffffff;
+                display: block;
             }
 
             .empty-path-overlay {
@@ -445,7 +568,7 @@ $sky-600: $cyan-500;
                 justify-content: center;
                 padding: 40px 150px;
                 gap: 8px;
-                pointer-events: none;
+                pointer-events: auto;
                 border-radius: 24rpx;
                 background: rgba(255, 255, 255, 0.9);
 
@@ -512,14 +635,17 @@ $sky-600: $cyan-500;
     .path-section {
         width: 90%;
         position: fixed; // ✅ 固定在底部
-        bottom: 276px; // ✅ 距离底部按钮 5px（按钮高度 56px + 间距 16px + 5px）
+        bottom: 236px; // ✅ 距离底部按钮 5px（按钮高度 56px + 间距 16px + 5px）
         left: 16px;
         right: 16px;
+        // background: rgba(156, 201, 243, 0.445);
         background: transparent;
         border-radius: 16px;
         padding: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        max-height: 200px;
+        display: flex;
+        flex-direction: column;
+        top: calc(100vh - 486px); // ✅ 顶部紧接运行参数区域下方
         z-index: 49;
 
         // ===== 标题栏 =====
@@ -528,6 +654,7 @@ $sky-600: $cyan-500;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 12px;
+            flex-shrink: 0;
 
             .path-header-left {
                 display: flex;
@@ -535,11 +662,11 @@ $sky-600: $cyan-500;
                 gap: 8px;
 
                 .path-header-icon {
-                    font-size: 28px;
+                    font-size: 30px;
                 }
 
                 .path-header-title {
-                    font-size: 28px;
+                    font-size: 30px;
                     font-weight: 600;
                     color: #1a2332;
                 }
@@ -559,7 +686,7 @@ $sky-600: $cyan-500;
                     }
 
                     .build-map-text {
-                        font-size: 28px;
+                        font-size: 30px;
                         font-weight: 500;
                         color: #ffffff;
                     }
@@ -570,50 +697,63 @@ $sky-600: $cyan-500;
 
         // ===== 路线列表 - 竖向滚动 =====
         .path-list-scroll {
-            width: 100%; // ✅ 宽度100%，和路线图一样
-            max-height: 150px;
-            margin-top: 12px;
+            width: 100%;
+            flex: 1; // ✅ 自动充满标题下方剩余区域
+            margin-top: 10px;
+            overflow-y: auto;
 
             .path-list {
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
-                padding: 4px 0;
+                gap: 7px;
+                padding: 2px 0;
                 width: 100%; // ✅ 宽度100%
 
                 .path-empty-item {
-                    padding: 16px;
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     text-align: center;
                     background: #f5f6fa;
                     border-radius: 8px;
                     width: 100%;
 
                     .path-empty-text {
-                        font-size: 28px;
+                        font-size: 30px;
                         color: #8c95a6;
                     }
                 }
 
                 .path-loading-item {
-                    padding: 16px;
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                     text-align: center;
                     background: #f5f6fa;
                     border-radius: 8px;
                     width: 100%;
 
                     .path-loading-text {
-                        font-size: 28px;
+                        font-size: 30px;
                         color: #4a6cf7;
                     }
                 }
 
                 .path-error-item {
-                    padding: 16px;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
                     text-align: center;
                     background: #fff4f4;
                     border: 2px dashed #ff6b6b;
                     border-radius: 8px;
                     width: 100%;
+                    box-sizing: border-box;
+                    overflow: hidden;
                     cursor: pointer;
 
                     .path-error-icon {
@@ -623,14 +763,14 @@ $sky-600: $cyan-500;
                     }
 
                     .path-error-text {
-                        font-size: 26px;
+                        font-size: 28px;
                         color: #ff6b6b;
                         display: block;
                         margin-bottom: 8px;
                     }
 
                     .path-error-retry {
-                        font-size: 24px;
+                        font-size: 26px;
                         color: #4a6cf7;
                         text-decoration: underline;
                     }
@@ -640,7 +780,7 @@ $sky-600: $cyan-500;
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 12px 16px;
+                    padding: 14px 16px;
                     background: #f5f6fa;
                     border-radius: 8px;
                     cursor: pointer;
@@ -654,8 +794,8 @@ $sky-600: $cyan-500;
                         gap: 10px;
 
                         .path-item-dot {
-                            width: 20px;
-                            height: 20px;
+                            width: 24px;
+                            height: 24px;
                             border-radius: 50%;
                             background: #d9d9d9;
                             transition: all 0.25s ease;
@@ -663,14 +803,14 @@ $sky-600: $cyan-500;
                         }
 
                         .path-item-name {
-                            font-size: 22px;
+                            font-size: 26px;
                             color: #666;
                             transition: all 0.25s ease;
                         }
                     }
 
                     .path-item-check {
-                        font-size: 16px;
+                        font-size: 26px;
                         color: #4a6cf7;
                         font-weight: 600;
                         flex-shrink: 0;
@@ -706,7 +846,7 @@ $sky-600: $cyan-500;
     left: 0;
     right: 0;
     padding: 26px 20px;
-    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+    padding-bottom: calc(36px + env(safe-area-inset-bottom));
     // background: #ffffff;
     background: transparent; // ✅ 透明
     border-top: 1px solid #e8ecf1;
@@ -715,7 +855,7 @@ $sky-600: $cyan-500;
 
 .start-btn {
     width: 80%;
-    height: 66px;
+    height: 86px;
     border-radius: 20px;
     background: #4a6cf7;
     display: flex;
@@ -726,7 +866,7 @@ $sky-600: $cyan-500;
     margin: 0 auto; // ✅ 水平居中
 
     .btn-text {
-        font-size: 30px;
+        font-size: 33px;
         font-weight: 600;
         color: #ffffff;
         letter-spacing: 2px;
@@ -793,8 +933,8 @@ $sky-600: $cyan-500;
 .logo-placeholder {
     width: 160rpx;
     height: 160rpx;
-    background-color: $slate-800;
-    border: 2rpx solid $slate-700;
+    background-color: $slate-300;
+    border: 2rpx solid $slate-300;
     border-radius: 24rpx;
     margin-bottom: 24rpx;
     display: flex;
@@ -810,8 +950,9 @@ $sky-600: $cyan-500;
 .logo-title {
     font-size: 48rpx;
     font-weight: 700;
-    color: $text-primary;
+    color: $slate-300;
     letter-spacing: 0.1em;
+
     text-align: center;
 }
 
@@ -891,6 +1032,92 @@ $sky-600: $cyan-500;
     }
 }
 
+// ===== 设备信息确认弹窗 =====
+.confirm-modal-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.confirm-modal {
+    width: 600rpx;
+    background: #ffffff;
+    border-radius: 24rpx;
+    overflow: hidden;
+
+    &__title {
+        padding: 32rpx;
+        font-size: 34rpx;
+        font-weight: 600;
+        color: #1a2332;
+        text-align: center;
+        border-bottom: 1rpx solid #f0f0f0;
+    }
+
+    &__content {
+        padding: 32rpx;
+    }
+
+    &__row {
+        display: flex;
+        align-items: center;
+        padding: 16rpx 0;
+    }
+
+    &__label {
+        font-size: 30rpx;
+        color: #64748b;
+        width: 180rpx;
+    }
+
+    &__value {
+        font-size: 30rpx;
+        color: #1a2332;
+        font-weight: 500;
+        flex: 1;
+    }
+
+    &__tip {
+        padding: 24rpx 0 8rpx;
+        font-size: 30rpx;
+        color: #ff4d4f;
+        text-align: center;
+    }
+
+    &__actions {
+        display: flex;
+        border-top: 1rpx solid #f0f0f0;
+    }
+
+    &__btn {
+        flex: 1;
+        padding: 28rpx 0;
+        font-size: 32rpx;
+        text-align: center;
+
+        &--cancel {
+            color: #64748b;
+            border-right: 1rpx solid #f0f0f0;
+        }
+
+        &--confirm {
+            color: #4a6cf7;
+            font-weight: 600;
+        }
+
+        &--disabled {
+            color: #bfbfbf;
+        }
+    }
+}
+
 .scan-icon-inner {
     width: 120rpx;
     height: 120rpx;
@@ -925,7 +1152,7 @@ $sky-600: $cyan-500;
 .scan-title {
     font-size: 48rpx;
     font-weight: 700;
-    color: $text-primary;
+    color: $slate-300;
     text-align: center;
     margin-bottom: 0;
 }
@@ -957,7 +1184,7 @@ $sky-600: $cyan-500;
     align-items: center;
     justify-content: center;
     margin-top: 0;
-    box-shadow: 0 8rpx 24rpx rgba(125, 211, 252, 0.3);
+    box-shadow: 0 8rpx 24rpx rgba(211, 228, 236, 0.3);
     transition: all 0.3s ease;
 
     &:active {
@@ -1026,4 +1253,20 @@ $sky-600: $cyan-500;
     color: $text-primary;
     font-weight: 600;
     font-family: monospace;
+}
+
+// Toast
+.toast {
+    position: fixed;
+    top: 128rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 16rpx 32rpx;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 12rpx;
+    font-size: 28rpx;
+    color: #ffffff;
+    z-index: 9999;
+    max-width: 80%;
+    text-align: center;
 }

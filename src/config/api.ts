@@ -96,6 +96,5 @@ export const API_ENDPOINTS = {
 }
 
 // HTTP 超时配置
-// 当前域名链路经 Cloudflare Tunnel，公网抖动时可能超过 10 秒。
-// 统一提高到 30 秒，避免登录/首屏请求被前端过早超时。
-export const REQUEST_TIMEOUT = 30000 // 30秒
+// 公网接口超时时间，避免长时间等待
+export const REQUEST_TIMEOUT = 10000 // 10秒

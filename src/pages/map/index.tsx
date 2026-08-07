@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, ScrollView } from '@tarojs/components'
 import './index.scss'
 import tRailcarService from '../../services/tRailcarService'
@@ -13,6 +13,7 @@ interface PointData {
     y: number
     lat: number
     lon: number
+    areaNumber?: number
 }
 
 const productId = VehicleService.getCurrentProductId()
@@ -28,6 +29,9 @@ interface PointPanelProps {
     subtitle: string
     actionText: string
     actionColor?: 'blue' | 'orange'
+    currentArea: number
+    areaCount: number
+    onAreaChange: (area: number) => void
     onFetch: () => Promise<void>
     onSample: () => Promise<CommandResponse>
     onDelete: (id: string) => Promise<void>
@@ -41,6 +45,9 @@ const PointPanel = ({
     subtitle,
     actionText,
     actionColor = 'blue',
+    currentArea,
+    areaCount,
+    onAreaChange,
     onFetch,
     onSample,
     onDelete,
@@ -77,15 +84,58 @@ const PointPanel = ({
     }
 
     const handleClearAll = async () => {
-        try {
-            await onClear()
-            Taro.showToast({ title: '清空成功', icon: 'success' })
-            await onFetch()
-        } catch (error: any) {
-            console.error('[清空] 失败:', error)
-            Taro.showToast({ title: '清空失败', icon: 'none' })
-        }
+        const isConnection = areaCount === 0
+        const confirmText = isConnection
+            ? '确定要清空所有连接点吗？清空后将同时清空区域点，需要重新开始建图。'
+            : `确定要清空所有区域点吗？清空后将重新开始建图。`
+        Taro.showModal({
+            title: '确认清空',
+            content: confirmText,
+            confirmText: '确定清空',
+            cancelText: '取消',
+            success: async (res) => {
+                if (res.confirm) {
+                    try {
+                        await onClear()
+                        Taro.showToast({ title: '清空成功', icon: 'success' })
+                        await onFetch()
+                    } catch (error: any) {
+                        console.error('[清空] 失败:', error)
+                        Taro.showToast({ title: '清空失败', icon: 'none' })
+                    }
+                }
+            },
+        })
     }
+
+    // 按区域分组（区域点按areaNumber，连接点按每2个一组作为一座桥梁）
+    const groupedPoints = useMemo(() => {
+        if (areaCount === 0) {
+            // 连接点：按每2个一组作为一座桥梁
+            const sorted = [...dataList].sort((a, b) => a.sequence - b.sequence)
+            const groups: Record<number, PointData[]> = {}
+            for (let i = 0; i < sorted.length; i += 2) {
+                const bridgeIndex = Math.floor(i / 2) + 1
+                groups[bridgeIndex] = sorted.slice(i, i + 2)
+            }
+            return Object.keys(groups)
+                .map(Number)
+                .sort((a, b) => a - b)
+                .map(area => ({ area, points: groups[area] }))
+        } else {
+            // 区域点：按areaNumber分组
+            const groups: Record<number, PointData[]> = {}
+            dataList.forEach(item => {
+                const area = item.areaNumber ?? 1
+                if (!groups[area]) groups[area] = []
+                groups[area].push(item)
+            })
+            return Object.keys(groups)
+                .map(Number)
+                .sort((a, b) => a - b)
+                .map(area => ({ area, points: groups[area] }))
+        }
+    }, [dataList, areaCount])
 
     return (
         <View className="region-card">
@@ -93,7 +143,10 @@ const PointPanel = ({
                 <View className="region-point__header">
                     <View className="region-point__header-left">
                         <Text className="region-point__header-title">
-                            已标记 {dataList.length} 个{title.replace('标记', '')}
+                            {areaCount === 0
+                                ? `已标记 ${Math.floor(dataList.length / 2)} 座桥梁 (${dataList.length}个连接点)`
+                                : `已标记 ${areaCount} 个清扫区域 (${dataList.length}个区域点)`
+                            }
                         </Text>
                     </View>
                     <View className="region-point__header-clear" onClick={handleClearAll}>
@@ -101,31 +154,78 @@ const PointPanel = ({
                     </View>
                 </View>
 
+                {areaCount === 0 ? (
+                    <View className="region-point__hint">
+                        <Text className="region-point__hint-text">💡 每座桥梁需记录2个点（起点和终点）</Text>
+                    </View>
+                ) : (
+                    <View className="region-point__hint">
+                        <Text className="region-point__hint-text">💡 每个区域最少需要4个点才能形成闭合区域</Text>
+                    </View>
+                )}
+
                 <ScrollView
                     className="region-point__scroll"
                     scrollY
-                    style={{ height: '320px' }}
+                    style={{ height: '280px' }}
                 >
                     <View className="region-point__table">
                         {dataList.length === 0 ? (
                             <View className="region-point__empty">
                                 <Text className="region-point__empty-text">暂无数据</Text>
                             </View>
+                        ) : areaCount === 0 ? (
+                            // 连接点：按桥梁分组显示（每2个为一组）
+                            groupedPoints.map(group => (
+                                <View key={`bridge-${group.area}`} className="region-point__group">
+                                    <View className="region-point__group-header">
+                                        <Text className="region-point__group-title">
+                                            桥梁{group.area} ({group.points.length}个点)
+                                        </Text>
+                                    </View>
+                                    {group.points.map((item: PointData) => (
+                                        <View className="region-point__row" key={item.id}>
+                                            <View className="region-point__cell region-point__cell--name">
+                                                <Text className="region-point__cell-text">{item.name}</Text>
+                                            </View>
+                                            <View className="region-point__cell region-point__cell--value">
+                                                <Text className="region-point__cell-text">({item.x},{item.y})</Text>
+                                            </View>
+                                            <View
+                                                className="region-point__cell region-point__cell--delete"
+                                                onClick={() => handleDelete(item.id)}
+                                            >
+                                                <Text className="region-point__delete-btn">删除</Text>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            ))
                         ) : (
-                            dataList.map(item => (
-                                <View className="region-point__row" key={item.id}>
-                                    <View className="region-point__cell region-point__cell--name">
-                                        <Text className="region-point__cell-text">{item.name}</Text>
+                            // 区域点：按区域分组显示
+                            groupedPoints.map(group => (
+                                <View key={`area-${group.area}`} className={`region-point__group`}>
+                                    <View className="region-point__group-header">
+                                        <Text className="region-point__group-title">
+                                            区域{group.area} ({group.points.length}个点)
+                                        </Text>
                                     </View>
-                                    <View className="region-point__cell region-point__cell--value">
-                                        <Text className="region-point__cell-text">({item.x},{item.y})</Text>
-                                    </View>
-                                    <View
-                                        className="region-point__cell region-point__cell--delete"
-                                        onClick={() => handleDelete(item.id)}
-                                    >
-                                        <Text className="region-point__delete-btn">删除</Text>
-                                    </View>
+                                    {group.points.map((item: PointData) => (
+                                        <View className="region-point__row" key={item.id}>
+                                            <View className="region-point__cell region-point__cell--name">
+                                                <Text className="region-point__cell-text">{item.name}</Text>
+                                            </View>
+                                            <View className="region-point__cell region-point__cell--value">
+                                                <Text className="region-point__cell-text">({item.x},{item.y})</Text>
+                                            </View>
+                                            <View
+                                                className="region-point__cell region-point__cell--delete"
+                                                onClick={() => handleDelete(item.id)}
+                                            >
+                                                <Text className="region-point__delete-btn">删除</Text>
+                                            </View>
+                                        </View>
+                                    ))}
                                 </View>
                             ))
                         )}
@@ -176,15 +276,29 @@ const MapPage = () => {
     const [linkingPoints, setLinkingPoints] = useState<PointData[]>([])
     const [regionLoaded, setRegionLoaded] = useState(false)
     const [connectLoaded, setConnectLoaded] = useState(false)
+    const [currentArea, setCurrentArea] = useState(1)
+    const [areaCount, setAreaCount] = useState(1)
 
     const fetchModelingPoints = useCallback(async () => {
+        // const fetchModelingPoints = useCallback(async (): Promise<PointData[]> => {
         try {
             const response = await tRailcarService.modeling.getModelingPoints(productId)
             console.log('[查询区域点] 成功:', response)
-            const points = Array.isArray(response) ? response : (response as any)?.points || []
-            setRegionPoints(points)
+            const allPoints = Array.isArray(response) ? response : (response as any)?.points || []
+            // 统计所有区域数
+            const areas = new Set<number>()
+            allPoints.forEach((p: PointData) => {
+                if (p.areaNumber !== undefined) areas.add(p.areaNumber)
+                else areas.add(1)
+            })
+            const maxArea = Math.max(...Array.from(areas), 1)
+            setAreaCount(maxArea)
+            // 存储所有区域点（不过滤）
+            setRegionPoints(allPoints)
+            return allPoints
         } catch (error) {
             console.error('[查询区域点] 失败:', error)
+            return []
         }
     }, [])
 
@@ -200,14 +314,26 @@ const MapPage = () => {
     }, [])
 
     useEffect(() => {
-        fetchModelingPoints()
-        setRegionLoaded(true)
-    }, [fetchModelingPoints])
+        if (activeTab === 'region') {
+            fetchModelingPoints()
+            fetchLinkingPoints()  // 同时刷新连接点，确保新增区域时检查准确
+            setRegionLoaded(true)
+        } else {
+            fetchLinkingPoints()
+            setConnectLoaded(true)
+        }
+    }, [activeTab, fetchModelingPoints, fetchLinkingPoints])
 
     useEffect(() => {
-        fetchLinkingPoints()
-        setConnectLoaded(true)
-    }, [fetchLinkingPoints])
+        if (activeTab === 'region') {
+            fetchLinkingPoints()
+            setConnectLoaded(true)
+        } else {
+            fetchModelingPoints()
+            setRegionLoaded(true)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     const handleRegionDirection = useCallback(async (direction: 'up' | 'down' | 'left' | 'right' | 'stop') => {
         const directionMap: Record<string, string> = {
@@ -222,8 +348,8 @@ const MapPage = () => {
             switch (direction) {
                 case 'up': response = await tRailcarService.movement.drive(productId, 0); break
                 case 'down': response = await tRailcarService.movement.back(productId, 0); break
-                case 'left': response = await tRailcarService.movement.turnLeft(productId, 90); break
-                case 'right': response = await tRailcarService.movement.turnRight(productId, 90); break
+                case 'left': response = await tRailcarService.movement.turnLeft(productId, 0); break
+                case 'right': response = await tRailcarService.movement.turnRight(productId, 0); break
                 case 'stop': response = await tRailcarService.movement.stop(productId); break
             }
             if (!response.success) throw new Error(response.message || '指令下发失败')
@@ -247,8 +373,8 @@ const MapPage = () => {
             switch (direction) {
                 case 'up': response = await tRailcarService.movement.drive(productId, 0); break
                 case 'down': response = await tRailcarService.movement.back(productId, 0); break
-                case 'left': response = await tRailcarService.movement.turnLeft(productId, 90); break
-                case 'right': response = await tRailcarService.movement.turnRight(productId, 90); break
+                case 'left': response = await tRailcarService.movement.turnLeft(productId, 0); break
+                case 'right': response = await tRailcarService.movement.turnRight(productId, 0); break
                 case 'stop': response = await tRailcarService.movement.stop(productId); break
             }
             if (!response.success) throw new Error(response.message || '指令下发失败')
@@ -284,11 +410,22 @@ const MapPage = () => {
     const handleClearRegion = useCallback(async () => {
         const response = await tRailcarService.movement.clear_area_point(productId)
         if (!response.success) throw new Error(response.message || '清空区域点失败')
+        // 清空后发送start_modeling重新开始建图
+        await tRailcarService.movement.start_modeling(productId)
+        setAreaCount(1)
+        setCurrentArea(1)
+        setRegionPoints([])
     }, [])
 
     const handleClearConnect = useCallback(async () => {
         const response = await tRailcarService.movement.clear_link_point(productId)
         if (!response.success) throw new Error(response.message || '清空连接点失败')
+        // 清空后发送start_modeling重新开始建图
+        await tRailcarService.movement.start_modeling(productId)
+        setAreaCount(1)
+        setCurrentArea(1)
+        setRegionPoints([])
+        setLinkingPoints([])
     }, [])
 
     const handleHelpClick = () => {
@@ -324,10 +461,10 @@ const MapPage = () => {
                                 pathPoints = response.pathPoints || []
                             }
 
-                            if (areaPoints.length > 0 || pathPoints.length > 0) {
-                                const mergedAreaPoints = [...areaPoints, ...linkPoints]
-                                console.log('[规划结果] mergedAreaPoints:', mergedAreaPoints.length, 'pathPoints:', pathPoints.length)
-                                Taro.setStorageSync('areaPoints', JSON.stringify(mergedAreaPoints))
+                            if (areaPoints.length > 0 || pathPoints.length > 0 || linkPoints.length > 0) {
+                                console.log('[规划结果] areaPoints:', areaPoints.length, 'linkPoints:', linkPoints.length, 'pathPoints:', pathPoints.length)
+                                Taro.setStorageSync('areaPoints', JSON.stringify(areaPoints))
+                                Taro.setStorageSync('linkPoints', JSON.stringify(linkPoints))
                                 Taro.setStorageSync('pathPoints', JSON.stringify(pathPoints))
                                 Taro.navigateTo({
                                     url: '/pages/route/index',
@@ -358,6 +495,104 @@ const MapPage = () => {
             },
         })
     }
+
+    // 新增区域块
+    const handleNewArea = useCallback(async () => {
+        // 先刷新数据，确保使用最新的区域点
+        const latestPoints = await fetchModelingPoints()
+        // 当前区域点数检查：每个区域最少4个点
+        const currentAreaPoints = latestPoints.filter(p => (p.areaNumber ?? 1) === currentArea)
+        console.log('[新增区域] 当前区域点检查:', { currentArea, totalPoints: latestPoints.length, currentAreaPointsCount: currentAreaPoints.length })
+        if (currentAreaPoints.length < 4) {
+            Taro.showModal({
+                title: '区域点不足',
+                content: `区域${currentArea}最少需要4个点才能形成闭合区域，当前已有${currentAreaPoints.length}个点，请继续在当前区域记录点。`,
+                showCancel: false,
+                confirmText: '知道了',
+            })
+            return
+        }
+
+        // 新增第N个区域需要N-1座桥梁（2个连接点/座）
+        const requiredBridges = currentArea  // 新增后区域数-1 = 需要的桥梁数
+        const requiredLinkPoints = requiredBridges * 2
+        // 重新获取连接点数据
+        let latestLinkingPoints: PointData[] = []
+        try {
+            const linkRes = await tRailcarService.modeling.getLinkingPoints(productId)
+            latestLinkingPoints = Array.isArray(linkRes) ? linkRes : (linkRes as any)?.points || []
+            setLinkingPoints(latestLinkingPoints)
+        } catch (e) {
+            console.error('[新增区域] 获取连接点失败:', e)
+        }
+        const currentBridges = Math.floor(latestLinkingPoints.length / 2)
+        if (latestLinkingPoints.length < requiredLinkPoints) {
+            Taro.showModal({
+                title: '需要记录连接点',
+                content: `区域间需要桥梁连接。新增区域${currentArea + 1}需要${requiredBridges}座桥梁（${requiredLinkPoints}个连接点），当前已有${currentBridges}座桥梁（${latestLinkingPoints.length}个连接点），请先切换到"连接点"标签页记录桥梁。`,
+                confirmText: '去记录',
+                cancelText: '取消',
+                success: (res) => {
+                    if (res.confirm) {
+                        setActiveTab('connect')
+                    }
+                },
+            })
+            return
+        }
+
+        Taro.showModal({
+            title: '新增区域',
+            content: `当前区域${currentArea}的点已记录完成，确定要开始新的区域吗？`,
+            confirmText: '确定',
+            cancelText: '取消',
+            success: async (res) => {
+                if (res.confirm) {
+                    Taro.showLoading({ title: '正在创建新区域...' })
+                    try {
+                        const response = await tRailcarService.movement.new_modeling_area(productId)
+                        if (!response.success || !response.commandId) {
+                            Taro.hideLoading()
+                            Taro.showToast({ title: response.message || '新增区域失败', icon: 'none' })
+                            return
+                        }
+                        console.log('[新增区域]', response.commandId)
+                        // 轮询命令状态
+                        const statusRes = await tRailcarService.pollCommandStatus(response.commandId, 15, 1000)
+                        Taro.hideLoading()
+
+                        const statusData = statusRes.detail?.result?.data
+                        if (statusData && statusRes.status === 'SUCCEEDED') {
+                            const newArea = statusData.areaNumber || (currentArea + 1)
+                            const totalCount = statusData.groupCount || newArea
+                            setAreaCount(totalCount)
+                            setCurrentArea(newArea)
+                            // setRegionPoints([])
+                            Taro.showToast({ title: `已切换到区域${newArea}`, icon: 'success' })
+                        } else if (statusRes.status === 'FAILED') {
+                            Taro.showToast({ title: '新增区域失败', icon: 'none' })
+                        } else {
+                            // 超时或其他状态，回退到 +1
+                            const newArea = currentArea + 1
+                            setAreaCount(newArea)
+                            setCurrentArea(newArea)
+                            setRegionPoints([])
+                            Taro.showToast({ title: `已切换到区域${newArea}`, icon: 'success' })
+                        }
+                    } catch (error: any) {
+                        Taro.hideLoading()
+                        Taro.showToast({ title: error?.message || '新增区域失败', icon: 'none' })
+                    }
+                }
+            },
+        })
+    }, [currentArea, fetchModelingPoints])
+
+    // 切换区域
+    const handleAreaChange = useCallback((area: number) => {
+        setCurrentArea(area)
+        setActiveTab('region')
+    }, [])
 
     const handleNextStep = () => {
         if (currentStep === 1) {
@@ -422,13 +657,21 @@ const MapPage = () => {
                     <View className={`tab-switch__slider ${activeTab === 'connect' ? 'tab-switch__slider--right' : ''}`} />
                     <View
                         className={`tab-switch__item ${activeTab === 'region' ? 'tab-switch__item--active' : ''} ${showGuide && currentStep === 1 ? 'guide-target' : ''}`}
-                        onClick={() => setActiveTab('region')}
+                        onClick={() => {
+                            if (activeTab !== 'region') {
+                                setActiveTab('region')
+                            }
+                        }}
                     >
                         <Text className="tab-switch__text">区域点</Text>
                     </View>
                     <View
                         className={`tab-switch__item ${activeTab === 'connect' ? 'tab-switch__item--active' : ''} ${showGuide && currentStep === 1 ? 'guide-target' : ''}`}
-                        onClick={() => setActiveTab('connect')}
+                        onClick={() => {
+                            if (activeTab !== 'connect') {
+                                setActiveTab('connect')
+                            }
+                        }}
                     >
                         <Text className="tab-switch__text">连接点</Text>
                     </View>
@@ -443,6 +686,9 @@ const MapPage = () => {
                             title="标记清扫区域"
                             subtitle="遥控机器人移至区域边缘位置，点击记录点。"
                             actionText="记录点"
+                            currentArea={currentArea}
+                            areaCount={areaCount}
+                            onAreaChange={handleAreaChange}
                             onFetch={fetchModelingPoints}
                             onSample={handleSampleRegion}
                             onDelete={handleDeleteRegion}
@@ -459,6 +705,9 @@ const MapPage = () => {
                             subtitle="遥控机器人移至连接点位置，点击记录桥梁。"
                             actionText="记录桥梁"
                             actionColor="orange"
+                            currentArea={1}
+                            areaCount={0}
+                            onAreaChange={() => { }}
                             onFetch={fetchLinkingPoints}
                             onSample={handleSampleConnect}
                             onDelete={handleDeleteConnect}
@@ -471,9 +720,12 @@ const MapPage = () => {
 
             <View className="map-page__footer">
                 <View className="map-page__footer-actions">
-                    {/* <View className="map-page__footer-btn map-page__footer-btn--undo">
-                        <Text className="map-page__footer-btn-text">撤销上一个点</Text>
-                    </View> */}
+                    <View
+                        className={`map-page__footer-btn map-page__footer-btn--undo ${activeTab !== 'region' ? 'map-page__footer-btn--disabled' : ''}`}
+                        onClick={activeTab === 'region' ? handleNewArea : undefined}
+                    >
+                        <Text className="map-page__footer-btn-text">新增区域</Text>
+                    </View>
                     <View className="map-page__footer-btn map-page__footer-btn--complete" onClick={handleComplete}>
                         <Text className="map-page__footer-btn-text">完成</Text>
                     </View>

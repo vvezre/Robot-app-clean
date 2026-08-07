@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { View, Button, Input, Text, Picker, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Battery, Back, Home, Settings, Send, Refresh, ChevronRight, Bell } from '../../components/Icons'
@@ -1340,77 +1340,89 @@ export default function Index() {
         return
       }
 
-      // 保存扫描结果
+      // 显示设备信息确认框，用户确认后再添加设备
       setScannedDevice(qrData)
+      Taro.showModal({
+        title: '设备信息确认',
+        content: `公司代号：${qrData.companyCode}\n产品型号：${qrData.productType}\n产品编号：${qrData.productId}\n\n确认添加此设备吗？`,
+        confirmText: '确认添加',
+        cancelText: '取消',
+        success: async (res) => {
+          if (!res.confirm) {
+            setScannedDevice(null)
+            return
+          }
+          // 调用后端绑定设备，确保小程序和App都是真实绑定而非本地临时添加
+          const bindResult = await vehicleService.scanAndBindDevice(qrData)
+          if (!bindResult.bound) {
+            const owner = bindResult.boundUsername || '其他用户'
+            showToast(`该设备已被 ${owner} 绑定`)
+            setScannedDevice(null)
+            return
+          }
 
-      // 调用后端绑定设备，确保小程序和App都是真实绑定而非本地临时添加
-      const bindResult = await vehicleService.scanAndBindDevice(qrData)
-      if (!bindResult.bound) {
-        const owner = bindResult.boundUsername || '其他用户'
-        showToast(`该设备已被 ${owner} 绑定`)
-        return
-      }
+          // 绑定成功后，重新拉取后端设备列表
+          const robotList = await loadVehicles()
+          const boundRobot = robotList.find(
+            r => r.productType === bindResult.productType && r.productId === bindResult.productId
+          )
+          if (boundRobot) {
+            openRobotDetail(boundRobot)
+            return
+          }
 
-      // 绑定成功后，重新拉取后端设备列表
-      const robotList = await loadVehicles()
-      const boundRobot = robotList.find(
-        r => r.productType === bindResult.productType && r.productId === bindResult.productId
-      )
-      if (boundRobot) {
-        openRobotDetail(boundRobot)
-        return
-      }
+          // 更新设置页面的默认值
+          setSettings({
+            companyCode: bindResult.companyCode,
+            productType: bindResult.productType,
+            productId: bindResult.productId,
+            infoCommandType: 0,
+            bindStatus: 0,
+            bindDeviceId: '',
+            bindDeviceIds: [],
+            workMode: 0,
+            runControl: 0,
+            runEnable: 0,
+            timeGroup1: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
+            timeGroup2: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
+            timeGroup3: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
+            timeGroup4: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
+            edgeDetectDelay: 0,
+            bridgeDetectTime: 0,
+            errorReturnTime: 0,
+            walkSpeed: 0,
+            brushSpeed: 0,
+            bridgeSpeed: 0,
+            heartbeat: 0,
+            reserved: 0,
+            reserved2: 0,
+            maxRowCount: 25,
+            batteryLowLimit: 50,
+            robotInPositionTime: 500,
+            limitPositionCheckTime: 500,
+            walkPositionCheckTime: 500,
+            walkFastSpeed: 800,
+            walkSlowSpeed: 300,
+            faultCode: 0,
+            currentRowPosition: 0,
+          })
 
-      // 更新设置页面的默认值
-      setSettings({
-        companyCode: bindResult.companyCode,
-        productType: bindResult.productType,
-        productId: bindResult.productId,
-        infoCommandType: 0,
-        bindStatus: 0,
-        bindDeviceId: '',
-        bindDeviceIds: [],
-        workMode: 0,
-        runControl: 0,
-        runEnable: 0,
-        timeGroup1: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
-        timeGroup2: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
-        timeGroup3: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
-        timeGroup4: { weekYear: '0000', monthDay: '0000', hourMin: '0000' },
-        edgeDetectDelay: 0,
-        bridgeDetectTime: 0,
-        errorReturnTime: 0,
-        walkSpeed: 0,
-        brushSpeed: 0,
-        bridgeSpeed: 0,
-        heartbeat: 0,
-        reserved: 0,
-        reserved2: 0,
-        maxRowCount: 25,
-        batteryLowLimit: 50,
-        robotInPositionTime: 500,
-        limitPositionCheckTime: 500,
-        walkPositionCheckTime: 500,
-        walkFastSpeed: 800,
-        walkSlowSpeed: 300,
-        faultCode: 0,
-        currentRowPosition: 0,
+          // 如果WebSocket已连接，订阅该设备的状态
+          if (wsConnected) {
+            const deviceId = bindResult.productType + bindResult.productId
+            console.log(`[Index Page] 扫描添加设备后订阅: ${deviceId}`)
+            websocketService.subscribeDevice(deviceId)
+            showToast(`设备 ${bindResult.productId} 绑定成功并已订阅`)
+          } else {
+            console.log(`[Index Page] WebSocket 未连接，跳过订阅 - 设备ID: ${bindResult.productId}`)
+            showToast(`设备 ${bindResult.productId} 绑定成功`)
+          }
+
+          setSelectedDeviceFamily(null)
+          setSearchKeyword('')
+          navigateTo('home')
+        },
       })
-
-      // 如果WebSocket已连接，订阅该设备的状态
-      if (wsConnected) {
-        const deviceId = bindResult.productType + bindResult.productId
-        console.log(`[Index Page] 扫描添加设备后订阅: ${deviceId}`)
-        websocketService.subscribeDevice(deviceId)
-        showToast(`设备 ${bindResult.productId} 绑定成功并已订阅`)
-      } else {
-        console.log(`[Index Page] WebSocket 未连接，跳过订阅 - 设备ID: ${bindResult.productId}`)
-        showToast(`设备 ${bindResult.productId} 绑定成功`)
-      }
-
-      setSelectedDeviceFamily(null)
-      setSearchKeyword('')
-      navigateTo('home')
     } catch (error: any) {
       console.error('扫描二维码失败:', error)
       if (error.errMsg && error.errMsg.includes('cancel')) {
@@ -1428,12 +1440,12 @@ export default function Index() {
         <View
           style={{
             position: 'absolute', top: '16px', left: '16px', zIndex: 10,
-            padding: '6px 12px', background: 'rgba(39,39,42,0.85)',
-            borderRadius: '8px', border: '1px solid #3f3f46',
+            padding: '6px 12px', background: '#ffffff',
+            borderRadius: '8px', border: '1px solid #e0e6ed',
           }}
           onClick={() => navigateTo('home')}
         >
-          <Text style={{ color: '#a1a1aa', fontSize: '14px' }}>← 返回</Text>
+          <Text style={{ color: '#4a6cf7', fontSize: '14px' }}>← 返回</Text>
         </View>
       )}
       <View className="scan-container">

@@ -1,4 +1,4 @@
-﻿// 颜色变量 - 深色主题（基于 solar-robot-app.jsx）
+// 颜色变量 - 深色主题（基于 solar-robot-app.jsx）
 // Slate 色系
 $slate-900: #0f172a; // 主背景色（深灰蓝）
 $slate-800: #1e293b; // 卡片背景色
@@ -3281,24 +3281,19 @@ $sky-600: $cyan-500;
 .logo-placeholder {
   width: 160rpx;
   height: 160rpx;
-  background-color: $slate-800;
-  border: 2rpx solid $slate-700;
+  background-color: #f5f6fa;
+  border: 2rpx solid #e0e6ed;
   border-radius: 24rpx;
   margin-bottom: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  // 可以在这里添加logo图片
-  // background-image: url('path/to/logo.png');
-  // background-size: contain;
-  // background-repeat: no-repeat;
-  // background-position: center;
 }
 
 .logo-title {
   font-size: 48rpx;
   font-weight: 700;
-  color: $text-primary;
+  color: #1a2332;
   letter-spacing: 0.1em;
   text-align: center;
 }
@@ -3310,8 +3305,8 @@ $sky-600: $cyan-500;
   align-items: center;
   justify-content: flex-start;
   min-height: 100%;
-  padding: 0 40rpx 160rpx 40rpx; // 底部padding避免被导航栏遮挡
-  background: transparent;
+  padding: 0 40rpx 160rpx 40rpx;
+  background: #f5f6fa;
 }
 
 .scan-container {
@@ -3343,13 +3338,13 @@ $sky-600: $cyan-500;
 .scan-icon {
   width: 200rpx;
   height: 200rpx;
-  border: 4rpx solid $cyan-400;
+  border: 4rpx solid #4a6cf7;
   border-radius: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(34, 211, 238, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(74, 108, 247, 0.08) 0%, rgba(108, 140, 255, 0.08) 100%);
 
   &::before {
     content: '';
@@ -3358,7 +3353,7 @@ $sky-600: $cyan-500;
     left: -4rpx;
     right: -4rpx;
     bottom: -4rpx;
-    border: 4rpx solid $cyan-400;
+    border: 4rpx solid #4a6cf7;
     border-radius: 24rpx;
     opacity: 0.3;
     animation: scan-pulse 2s ease-in-out infinite;
@@ -3382,7 +3377,7 @@ $sky-600: $cyan-500;
 .scan-icon-inner {
   width: 120rpx;
   height: 120rpx;
-  border: 3rpx solid $cyan-400;
+  border: 3rpx solid #4a6cf7;
   border-radius: 12rpx;
   position: relative;
 
@@ -3392,7 +3387,7 @@ $sky-600: $cyan-500;
     position: absolute;
     width: 20rpx;
     height: 20rpx;
-    border: 2rpx solid $cyan-400;
+    border: 2rpx solid #4a6cf7;
   }
 
   &::before {
@@ -3413,14 +3408,14 @@ $sky-600: $cyan-500;
 .scan-title {
   font-size: 48rpx;
   font-weight: 700;
-  color: $text-primary;
+  color: #1a2332;
   text-align: center;
   margin-bottom: 0;
 }
 
 .scan-desc {
   font-size: 28rpx;
-  color: $text-label;
+  color: #6b7280;
   text-align: center;
   line-height: 1.6;
   margin-bottom: 0;
@@ -3428,7 +3423,7 @@ $sky-600: $cyan-500;
 
 .scan-desc-small {
   font-size: 24rpx;
-  color: $text-tertiary;
+  color: #8c95a6;
   text-align: center;
   line-height: 1.5;
   margin-bottom: 0;
@@ -3438,45 +3433,45 @@ $sky-600: $cyan-500;
   width: 100%;
   max-width: 500rpx;
   height: 96rpx;
-  background: linear-gradient(135deg, $btn-blue-start 0%, $btn-blue-end 100%);
-  border: 1px solid rgba(125, 211, 252, 0.56);
+  background: linear-gradient(135deg, #4a6cf7 0%, #6c8cff 100%);
+  border: 1px solid #4a6cf7;
   border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 0;
-  box-shadow: 0 8rpx 24rpx rgba(125, 211, 252, 0.3);
+  box-shadow: 0 8rpx 24rpx rgba(74, 108, 247, 0.3);
   transition: all 0.3s ease;
 
   &:active {
     transform: scale(0.98);
-    box-shadow: 0 4rpx 12rpx rgba(125, 211, 252, 0.24);
+    box-shadow: 0 4rpx 12rpx rgba(74, 108, 247, 0.24);
   }
 }
 
 .scan-btn-secondary {
-  background: linear-gradient(135deg, $btn-gray-start, $btn-gray-end);
-  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: linear-gradient(135deg, #f5f6fa, #e8ecf1);
+  border: 1px solid #d0d7de;
   box-shadow: none;
   margin-top: 20rpx;
 
   &:active {
-    background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+    background: linear-gradient(135deg, #e8ecf1, #d0d7de);
   }
 }
 
 .scan-btn-text {
   font-size: 32rpx;
   font-weight: 600;
-  color: $btn-text-dark;
+  color: #ffffff;
 }
 
 .scan-result {
   width: 100%;
   margin-top: 40rpx;
   padding: 40rpx;
-  background-color: $slate-800;
-  border: 1px solid $slate-700;
+  background-color: #ffffff;
+  border: 1px solid #e0e6ed;
   border-radius: 16rpx;
   display: flex;
   flex-direction: column;
@@ -3486,7 +3481,7 @@ $sky-600: $cyan-500;
 .scan-result-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: $cyan-400;
+  color: #4a6cf7;
   text-align: center;
   margin-bottom: 10rpx;
 }
@@ -3496,7 +3491,7 @@ $sky-600: $cyan-500;
   align-items: center;
   justify-content: space-between;
   padding: 16rpx 0;
-  border-bottom: 1px solid $slate-700;
+  border-bottom: 1px solid #e8ecf1;
 
   &:last-child {
     border-bottom: none;
@@ -3505,13 +3500,13 @@ $sky-600: $cyan-500;
 
 .scan-result-label {
   font-size: 28rpx;
-  color: $text-label;
+  color: #6b7280;
   font-weight: 500;
 }
 
 .scan-result-value {
   font-size: 28rpx;
-  color: $text-primary;
+  color: #1a2332;
   font-weight: 600;
   font-family: monospace;
 }

@@ -40,16 +40,36 @@
     display: flex;
     align-items: center;
     gap: 12px;
+
+    &--check {
+      cursor: pointer;
+      user-select: none;
+    }
+  }
+
+  &__legend-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #4a6cf7;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    flex-shrink: 0;
+  }
+
+  &__legend-checkmark {
+    font-size: 14px;
+    color: #4a6cf7;
+    font-weight: 700;
   }
 
   &__legend-dot {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-
-    &--area {
-      background: #999999;
-    }
+    background: #cccccc;
   }
 
   &__legend-line {

@@ -23,6 +23,7 @@ export interface RequestConfig {
   timeout?: number
   showLoading?: boolean
   loadingText?: string
+  silent?: boolean  // 静默模式，不显示错误提示toast
 }
 
 /**
@@ -50,6 +51,7 @@ class Request {
       timeout = this.timeout,
       showLoading = false,
       loadingText = '加载中...',
+      silent = false,
     } = config
 
     // 显示加载提示
@@ -117,13 +119,13 @@ class Request {
       if (response.statusCode !== 200) {
         let errorMsg = `HTTP ${response.statusCode}`
         if (response.statusCode === 504 || response.statusCode === 502) {
-            errorMsg = '服务器暂时不可用，请稍后重试'
+          errorMsg = '服务器暂时不可用，请稍后重试'
         } else if (response.statusCode === 404) {
-            errorMsg = '请求的资源不存在'
+          errorMsg = '请求的资源不存在'
         } else if (response.statusCode >= 500) {
-            errorMsg = '服务器内部错误，请稍后重试'
+          errorMsg = '服务器内部错误，请稍后重试'
         } else {
-            errorMsg = response.errMsg || `HTTP ${response.statusCode}`
+          errorMsg = response.errMsg || `HTTP ${response.statusCode}`
         }
         throw new Error(errorMsg)
       }
@@ -146,16 +148,31 @@ class Request {
 
       console.error('请求失败:', error)
 
-      // 如果不是 401/403，显示错误提示
-      if (!error.message?.includes('登录') && !error.message?.includes('权限')) {
+      // 处理超时错误
+      const errorMsg = error?.errMsg || error?.message || ''
+      let friendlyMsg = '网络请求失败'
+
+      if (errorMsg.includes('timeout') || errorMsg.includes('超时')) {
+        friendlyMsg = '请求超时，请检查网络连接'
+      } else if (errorMsg.includes('fail') || errorMsg.includes('网络')) {
+        friendlyMsg = '网络连接失败，请检查网络'
+      } else if (!error.message?.includes('登录') && !error.message?.includes('权限')) {
+        friendlyMsg = error.message || '网络请求失败'
+      }
+
+      // 显示错误提示（登录/权限错误除外，静默模式除外）
+      if (!error.message?.includes('登录') && !error.message?.includes('权限') && !silent) {
         Taro.showToast({
-          title: error.message || '网络请求失败',
+          title: friendlyMsg,
           icon: 'none',
           duration: 2000,
         })
       }
 
-      throw error
+      // 创建新的错误对象，包含友好消息
+      const newError = new Error(friendlyMsg)
+      newError.stack = error?.stack
+      throw newError
     }
   }
 
